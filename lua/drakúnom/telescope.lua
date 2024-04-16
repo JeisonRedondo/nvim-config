@@ -7,4 +7,5 @@ telescope.setup {}
 -- la función de configuración.
 
 telescope.load_extension('fzf')
+require("telescope").load_extension("scope")
 

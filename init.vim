@@ -39,7 +39,8 @@ Plug 'VonHeikemen/lsp-zero.nvim', {'branch': 'v3.x'}
 " Plugin para los buffers: Scope
 Plug 'nvim-tree/nvim-web-devicons' " Recommended (for coloured icons)
 " Plug 'ryanoasis/vim-devicons' Icons without colours
-Plug 'akinsho/bufferline.nvim', { 'tag': '*' }
+" Plug 'akinsho/bufferline.nvim', { 'tag': '*' }
+" Plug 'willothy/nvim-cokeline'
 
 " Plugin de neo-tree
 Plug 'nvim-tree/nvim-tree.lua'
@@ -59,12 +60,14 @@ lua require ('drakúnom')
 " LeaderKey
 let mapleader=" "
 
+nnoremap <leader>- <Esc> 
 
-" Abriendo telescope:find_files
-nnoremap <leader>ff :Telescope find_files<CR>
 
-" Abriendo telescope:buffer
-nnoremap <leader><leader> :Telescope buffers<CR>
+" Find files using Telescope command-line sugar.
+nnoremap <leader>ff <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>fb <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
 
 " Toggle de NvimTree
 nnoremap <leader>e :NvimTreeToggle<CR>
@@ -73,6 +76,5 @@ nnoremap <leader>e :NvimTreeToggle<CR>
 if !has('gui_running')
   set t_Co=256
 endif
-
 
 
