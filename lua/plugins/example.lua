@@ -33,7 +33,7 @@ return {
   },
 
   -- disable trouble
-  { "folke/trouble.nvim",      enabled = false },
+  { "folke/trouble.nvim", enabled = false },
 
   -- override nvim-cmp and add cmp-emoji
   {
@@ -67,7 +67,6 @@ return {
       },
     },
   },
-
   -- add pyright to lspconfig
   {
     "neovim/nvim-lspconfig",
