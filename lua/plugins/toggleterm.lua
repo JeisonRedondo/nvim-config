@@ -1,14 +1,14 @@
 return {
   {
     "akinsho/toggleterm.nvim",
+    version = "*",
     config = function()
       require("toggleterm").setup({
-        direction = "horizontal", -- Asegura que la terminal se abra horizontalmente
-        size = 10, -- Ajusta el tamaño de la terminal
-        open_mapping = [[<c-i>]], -- Atajo para abrir la terminal
-        shading_factor = 2,
+        open_mapping = [[<c-m>]],
+        direction = "horizontal", -- Abre la terminal en una nueva pestaña
         start_in_insert = true,
         persist_size = true,
+        close_on_exit = true,
       })
     end,
   },

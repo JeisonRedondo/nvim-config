@@ -5,3 +5,13 @@
 local map = LazyVim.safe_keymap_set
 map({ "i", "x", "n", "s" }, ",,", "<cmd>w<cr><esc>", { desc = "Save File" })
 
+local cmp = require("cmp")
+
+cmp.setup({
+  mapping = {
+    ["<Tab>"] = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }),
+    ["<S-Tab>"] = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }),
+    -- Otras configuraciones
+  },
+  -- Otras opciones de configuración
+})
