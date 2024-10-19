@@ -4,7 +4,7 @@ return {
     version = "*",
     config = function()
       require("toggleterm").setup({
-        open_mapping = [[<c-m>]],
+        open_mapping = [[<c-t>]],
         direction = "horizontal", -- Abre la terminal en una nueva pestaña
         start_in_insert = true,
         persist_size = true,
