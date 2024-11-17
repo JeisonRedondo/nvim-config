@@ -1,4 +1,0 @@
-{
-  "suggest.noselect": false, // Permite seleccionar automáticamente la primera opción
-  "suggest.enablePreselect": true // Preseleccionar una opción en el menú emergente
-}
