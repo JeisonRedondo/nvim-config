@@ -12,7 +12,6 @@ return {
 				null_ls.builtins.formatting.rubocop,
 				null_ls.builtins.formatting.prettier,
 				null_ls.builtins.diagnostics.rubocop,
-				require("none-ls.diagnostics.eslint_d"),
 			},
 		})
 
