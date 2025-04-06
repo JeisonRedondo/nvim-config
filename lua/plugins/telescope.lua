@@ -15,9 +15,6 @@ return {
       -- Keymaps para ver el git status de git, donde ah cambiado el proyecto.
      vim.keymap.set('n','<leader>fs', builtin.git_status, {})
 
-      
-
-
     end
   },
   {
