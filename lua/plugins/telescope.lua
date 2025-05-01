@@ -11,9 +11,22 @@ return {
       --  Keymap par aver los buffers abiertos
       vim.keymap.set('n','<leader>fb', builtin.buffers, {})
       -- Keymaps para identificar palabras en los tags 
-     vim.keymap.set('n','<leader>fh', builtin.help_tags, {})
+      vim.keymap.set('n','<leader>fh', builtin.help_tags, {})
       -- Keymaps para ver el git status de git, donde ah cambiado el proyecto.
-     vim.keymap.set('n','<leader>fs', builtin.git_status, {})
+      vim.keymap.set('n','<leader>fs', builtin.git_status, {})
+
+      -- División horizontal + mover foco + abrir find_files
+      vim.keymap.set('n', '<C-w>h', function()
+        vim.cmd('split')
+        vim.cmd('wincmd j')
+        vim.schedule(builtin.find_files)
+      end, { noremap = true, silent = true })
+      -- División vertical + mover foco + abrir find_files
+      vim.keymap.set('n', '<C-w>v', function()
+        vim.cmd('vsplit')
+        vim.cmd('wincmd l')
+        vim.schedule(builtin.find_files)
+      end, { noremap = true, silent = true })
 
     end
   },
