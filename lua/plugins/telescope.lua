@@ -16,13 +16,13 @@ return {
       vim.keymap.set('n','<leader>fs', builtin.git_status, {})
 
       -- División horizontal + mover foco + abrir find_files
-      vim.keymap.set('n', '<C-w>h', function()
+      vim.keymap.set('n', '<C-w>"', function()
         vim.cmd('split')
         vim.cmd('wincmd j')
         vim.schedule(builtin.find_files)
       end, { noremap = true, silent = true })
       -- División vertical + mover foco + abrir find_files
-      vim.keymap.set('n', '<C-w>v', function()
+      vim.keymap.set('n', '<C-w>%', function()
         vim.cmd('vsplit')
         vim.cmd('wincmd l')
         vim.schedule(builtin.find_files)
