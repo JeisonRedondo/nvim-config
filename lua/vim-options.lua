@@ -11,17 +11,34 @@ vim.o.directory = "~/.local/share/nvim/swap//"
 
 vim.o.autowrite = true
 
+-- Función para guardar y mostrar mensaje
+function SaveFile()
+  vim.cmd("write") -- Equivale a :w
+  vim.notify("Archivo guardado", vim.log.levels.INFO, { title = "Guardar" })
+end
+
+-- Mapeos en modo normal y visual
+vim.keymap.set({ "n", "v" }, "<C-s>", function()
+  SaveFile()
+end, { noremap = true, silent = true })
+
+-- Mapeo en modo insert: sale del insert, guarda, y se queda en normal
+vim.keymap.set("i", "<C-s>", function()
+  vim.cmd("stopinsert")
+  SaveFile()
+end, { noremap = true, silent = true })
+
 -- Opciones comunes para los mapeos
 local opts = { noremap = true, silent = true }
 
 -- Mover líneas o bloques
-vim.keymap.set('v', '<A-j>', ":m '>+1<CR>gv=gv", opts)
-vim.keymap.set('v', '<A-k>', ":m '<-2<CR>gv=gv", opts)
+vim.keymap.set("v", "<A-j>", ":m '>+1<CR>gv=gv", opts)
+vim.keymap.set("v", "<A-k>", ":m '<-2<CR>gv=gv", opts)
 
 -- Mover entre buffers
-vim.keymap.set('n', '<leader>bn', ':bnext<CR>', opts)
-vim.keymap.set('n', '<leader>bp', ':bprevious<CR>', opts)
-vim.keymap.set('n', '<leader>bd', ':bd<CR>', opts)
+vim.keymap.set("n", "<leader>bn", ":bnext<CR>", opts)
+vim.keymap.set("n", "<leader>bp", ":bprevious<CR>", opts)
+vim.keymap.set("n", "<leader>bd", ":bd<CR>", opts)
 
 -- Función para redimensionar ventanas en cualquier dirección
 function ResizeWindow(direction, amount)
@@ -43,12 +60,17 @@ function ResizeWindow(direction, amount)
   vim.cmd(cmd)
 end
 
-vim.keymap.set('n', '<A-l>', function() ResizeWindow("left", 2) end, opts)
-vim.keymap.set('n', '<A-h>', function() ResizeWindow("right", 2) end, opts)
-vim.keymap.set('n', '<A-j>', function() ResizeWindow("up", 2) end, opts)
-vim.keymap.set('n', '<A-k>', function() ResizeWindow("down", 2) end, opts)
+vim.keymap.set("n", "<A-l>", function()
+  ResizeWindow("left", 2)
+end, opts)
+vim.keymap.set("n", "<A-h>", function()
+  ResizeWindow("right", 2)
+end, opts)
+vim.keymap.set("n", "<A-j>", function()
+  ResizeWindow("up", 2)
+end, opts)
+vim.keymap.set("n", "<A-k>", function()
+  ResizeWindow("down", 2)
+end, opts)
 
-
-
-
-
+vim.keymap.set("n", "<leader>-", "<CMD>Oil<CR>", { desc = "Open parent directory" })
