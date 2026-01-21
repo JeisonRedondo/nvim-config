@@ -10,7 +10,7 @@ return {
     "williamboman/mason-lspconfig.nvim",
     lazy = false,
     opts = {
-      ensure_installed = { "lua_ls", "ts_ls", "html", "eslint" }, -- tus LSPs
+      ensure_installed = { "lua_ls", "ts_ls", "html", "eslint" }, -- quitamos denols
       automatic_installation = true,
     },
   },
@@ -19,13 +19,27 @@ return {
     lazy = false,
     config = function()
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
-      local lspconfig = require("lspconfig")
 
-      -- Ejemplo con los servidores que usas
-      lspconfig.lua_ls.setup({ capabilities = capabilities })
-      lspconfig.ts_ls.setup({ capabilities = capabilities })
-      lspconfig.html.setup({ capabilities = capabilities })
-      lspconfig.eslint.setup({ capabilities = capabilities })
+      -- Lua
+      vim.lsp.config("lua_ls", {
+        capabilities = capabilities,
+      })
+
+      -- TypeScript / React (Node.js, Vite, etc.)
+      vim.lsp.config("ts_ls", {
+        capabilities = capabilities,
+        root_dir = vim.fs.root(0, { "package.json", "tsconfig.json", ".git" }),
+      })
+
+      -- HTML
+      vim.lsp.config("html", {
+        capabilities = capabilities,
+      })
+
+      -- ESLint
+      vim.lsp.config("eslint", {
+        capabilities = capabilities,
+      })
 
       -- Keymaps
       vim.keymap.set("n", "gd", vim.lsp.buf.definition, {})

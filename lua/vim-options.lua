@@ -74,3 +74,17 @@ vim.keymap.set("n", "<A-k>", function()
 end, opts)
 
 vim.keymap.set("n", "<leader>-", "<CMD>Oil<CR>", { desc = "Open parent directory" })
+
+vim.g.clipboard = {
+  name = "WslClipboard",
+  copy = {
+    ["+"] = "/mnt/c/Windows/System32/clip.exe",
+    ["*"] = "/mnt/c/Windows/System32/clip.exe",
+  },
+  paste = {
+    ["+"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe Get-Clipboard",
+    ["*"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe Get-Clipboard",
+  },
+  cache_enabled = 0,
+}
+

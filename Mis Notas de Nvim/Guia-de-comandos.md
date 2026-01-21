@@ -4,7 +4,7 @@ Bueno ya siendo serios, este documento es hecho con el fin de recordarme a mi mi
 
 ## Comandos de Plugins
 ### lsp
--[gd] Este comando lo uso para que nvim me dirija al archivo del cual hace referencia un link, es como una busqueda rapida. Entonces si solo ahi una referencia de este link, me dirijira ahi.
+-[gd] Este comando lo uso para que nvim me dirija al archivo del cual hace referencia un link, es como una busqueda rapida. Entonces si solo ahi una referencia de este link, me dirijira ahi. Esto es porque este comando esta linkeado con el telescope.
 
 
 ## Comandos por defecto
