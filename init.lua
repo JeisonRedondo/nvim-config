@@ -19,9 +19,5 @@ vim.opt.rtp:prepend(lazypath)
 require("config.options")
 require("config.functions")
 require("config.keymaps")
-require("config.mentorIA").setup({
-
- model = "deepseek-r1:7b-q4_K_M",
-})
 
 require("lazy").setup("plugins")
