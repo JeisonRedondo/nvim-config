@@ -10,7 +10,7 @@ return {
     "williamboman/mason-lspconfig.nvim",
     lazy = false,
     opts = {
-      ensure_installed = { "lua_ls", "ts_ls", "html", "eslint" }, -- quitamos denols
+      ensure_installed = { "lua_ls", "ts_ls", "html", "cssls", "eslint" },
       automatic_installation = true,
     },
   },
@@ -20,36 +20,48 @@ return {
     config = function()
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-      -- Lua
-      vim.lsp.config("lua_ls", {
+      -- ============================================
+      -- HABILITAR LSP SERVERS
+      -- ============================================
+
+      vim.lsp.enable("lua_ls")
+      vim.lsp.enable("ts_ls")
+      vim.lsp.enable("html")
+      vim.lsp.enable("cssls")
+      vim.lsp.enable("eslint")
+
+      -- Config global para todos los servers
+      vim.lsp.config("*", {
         capabilities = capabilities,
       })
 
-      -- TypeScript / React (Node.js, Vite, etc.)
-      vim.lsp.config("ts_ls", {
-        capabilities = capabilities,
-        root_dir = vim.fs.root(0, { "package.json", "tsconfig.json", ".git" }),
-      })
+      -- ============================================
+      -- KEYMAPS DE LSP
+      -- ============================================
 
-      -- HTML
-      vim.lsp.config("html", {
-        capabilities = capabilities,
-      })
+      vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Go to definition" })
+      vim.keymap.set("n", "K", vim.lsp.buf.hover, { desc = "Hover documentation" })
+      vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, { desc = "Code action" })
+      vim.keymap.set("n", "gr", vim.lsp.buf.references, { desc = "References" })
+      vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Rename" })
+      vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, { desc = "Show diagnostics" })
+      vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
+      vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
 
-      -- ESLint
-      vim.lsp.config("eslint", {
-        capabilities = capabilities,
-      })
+      -- ============================================
+      -- CONFIGURACIÓN DE DIAGNÓSTICOS (FORMA NUEVA)
+      -- ============================================
 
-      -- Keymaps
-      vim.keymap.set("n", "gd", vim.lsp.buf.definition, {})
-      vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, {})
-      vim.keymap.set("n", "K", vim.lsp.buf.hover, {})
-
-      -- Diagnostics
       vim.diagnostic.config({
         virtual_text = true,
-        signs = true,
+        signs = {
+          text = {
+            [vim.diagnostic.severity.ERROR] = "󰅚 ",
+            [vim.diagnostic.severity.WARN] = "󰀪 ",
+            [vim.diagnostic.severity.HINT] = "󰌶 ",
+            [vim.diagnostic.severity.INFO] = " ",
+          },
+        },
         underline = true,
         update_in_insert = false,
         float = {
@@ -57,11 +69,8 @@ return {
           max_width = 80,
           source = "always",
           focusable = false,
-          header = "",
-          prefix = "",
         },
       })
     end,
   },
 }
-
