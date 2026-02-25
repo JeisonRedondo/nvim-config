@@ -1,11 +1,9 @@
 -- ============================================================================
--- ARCHIVO: ~/.config/nvim/lua/plugins/lsp.lua
+-- ARCHIVO 1: ~/.config/nvim/lua/plugins/lsp.lua
 -- ============================================================================
--- Neovim 0.11+ (vim.lsp.config + vim.lsp.enable)
--- - Auto-imports y source actions correctas para TS/JS
--- - ESLint fix-on-save usando LspEslintFixAll (Nvim 0.11+)
--- - Keymaps LSP sin conflictos con <leader>f (files/find)
--- ============================================================================
+-- Configuraci├│n DEFINITIVA de LSP basada en nvim-lspconfig oficial
+-- Compatible con Neovim 0.11+ y mejores pr├ícticas 2024-2025
+-- AUTO-IMPORTS REALES para TypeScript/JavaScript/React
 
 return {
 	-- Mason: Instalador de LSP servers
@@ -18,9 +16,9 @@ return {
 				ui = {
 					border = "rounded",
 					icons = {
-						package_installed = "✓",
-						package_pending = "➜",
-						package_uninstalled = "✗",
+						package_installed = "Ô£ô",
+						package_pending = "Ô×£",
+						package_uninstalled = "Ô£ù",
 					},
 				},
 			})
@@ -44,27 +42,32 @@ return {
 					"lua_ls", -- Lua
 					"jsonls", -- JSON
 				},
-				-- Neovim 0.11+
+				-- IMPORTANTE: En Neovim 0.11+, automatic_enable reemplaza automatic_setup
+				-- Esto permite que vim.lsp.enable() funcione correctamente
 				automatic_enable = true,
 			})
 		end,
 	},
 
-	-- nvim-lspconfig
+	-- nvim-lspconfig: Configuraciones oficiales de LSP
 	{
 		"neovim/nvim-lspconfig",
 		lazy = false,
 		priority = 98,
 		dependencies = {
-			"hrsh7th/cmp-nvim-lsp",
-			"b0o/schemastore.nvim",
+			"hrsh7th/cmp-nvim-lsp", -- Para capabilities de autocompletado
+			"b0o/schemastore.nvim", -- Para JSON schemas
 		},
+
 		config = function()
+			-- ================================================
+			-- CAPABILITIES (para que LSP funcione con nvim-cmp)
+			-- ================================================
 			local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-			-- ------------------------------------------------
-			-- LUA
-			-- ------------------------------------------------
+			-- ================================================
+			-- CONFIGURACI├ôN: LUA (para configuraci├│n de Neovim)
+			-- ================================================
 			vim.lsp.config("lua_ls", {
 				capabilities = capabilities,
 				settings = {
@@ -76,19 +79,24 @@ return {
 							checkThirdParty = false,
 						},
 						telemetry = { enable = false },
-						format = { enable = false },
+						format = { enable = false }, -- Usar stylua externo
 					},
 				},
 			})
 
-			-- ------------------------------------------------
-			-- TS/JS (ts_ls)
-			-- ------------------------------------------------
+			-- ================================================
+			-- CONFIGURACI├ôN: TYPESCRIPT/JAVASCRIPT (LA CLAVE)
+			-- ================================================
+			-- Basado en la configuraci├│n oficial de nvim-lspconfig
+			-- y typescript-language-server documentation
 			vim.lsp.config("ts_ls", {
 				capabilities = capabilities,
+
+				-- CRITICAL: init_options es REQUERIDO para auto-imports
 				init_options = {
 					hostInfo = "neovim",
 					preferences = {
+						-- ESTAS son las opciones que hacen funcionar auto-import
 						includeCompletionsForModuleExports = true,
 						includeCompletionsWithInsertText = true,
 						includePackageJsonAutoImports = "auto",
@@ -97,6 +105,8 @@ return {
 						quotePreference = "double",
 					},
 				},
+
+				-- Settings adicionales (opcional pero recomendado)
 				settings = {
 					typescript = {
 						inlayHints = {
@@ -125,17 +135,17 @@ return {
 				},
 			})
 
-			-- ------------------------------------------------
-			-- HTML
-			-- ------------------------------------------------
+			-- ================================================
+			-- CONFIGURACI├ôN: HTML
+			-- ================================================
 			vim.lsp.config("html", {
 				capabilities = capabilities,
 				filetypes = { "html", "htmldjango" },
 			})
 
-			-- ------------------------------------------------
-			-- CSS
-			-- ------------------------------------------------
+			-- ================================================
+			-- CONFIGURACI├ôN: CSS/SCSS/Less
+			-- ================================================
 			vim.lsp.config("cssls", {
 				capabilities = capabilities,
 				settings = {
@@ -148,20 +158,21 @@ return {
 				},
 			})
 
-			-- ------------------------------------------------
-			-- ESLint (fix-on-save correcto en Nvim 0.11+)
-			-- ------------------------------------------------
+			-- ================================================
+			-- CONFIGURACI├ôN: ESLINT (Linter + Formatter)
+			-- ================================================
+			-- Guarda el on_attach base (antes de sobreescribirlo)
 			local base_eslint_on_attach = vim.lsp.config.eslint and vim.lsp.config.eslint.on_attach or nil
 
 			vim.lsp.config("eslint", {
 				capabilities = capabilities,
 				on_attach = function(client, bufnr)
-					-- Mantener el on_attach base de lspconfig (crea el comando LspEslintFixAll)
+					-- Esto crea el comando buffer-local :LspEslintFixAll
 					if base_eslint_on_attach then
 						base_eslint_on_attach(client, bufnr)
 					end
 
-					-- Fix al guardar (usa el comando buffer-local creado por lspconfig)
+					-- Fix al guardar
 					vim.api.nvim_create_autocmd("BufWritePre", {
 						buffer = bufnr,
 						command = "LspEslintFixAll",
@@ -171,10 +182,9 @@ return {
 					workingDirectories = { mode = "auto" },
 				},
 			})
-
-			-- ------------------------------------------------
-			-- JSON
-			-- ------------------------------------------------
+			-- ================================================
+			-- CONFIGURACI├ôN: JSON
+			-- ================================================
 			vim.lsp.config("jsonls", {
 				capabilities = capabilities,
 				settings = {
@@ -185,9 +195,9 @@ return {
 				},
 			})
 
-			-- ------------------------------------------------
-			-- Tailwind
-			-- ------------------------------------------------
+			-- ================================================
+			-- CONFIGURACI├ôN: TAILWIND CSS
+			-- ================================================
 			vim.lsp.config("tailwindcss", {
 				capabilities = capabilities,
 				settings = {
@@ -203,9 +213,10 @@ return {
 				},
 			})
 
-			-- ------------------------------------------------
-			-- HABILITAR SERVIDORES
-			-- ------------------------------------------------
+			-- ================================================
+			-- HABILITAR TODOS LOS SERVIDORES (IMPORTANTE)
+			-- ================================================
+			-- En Neovim 0.11+, vim.lsp.enable() reemplaza setup()
 			vim.lsp.enable({
 				"lua_ls",
 				"ts_ls",
@@ -216,9 +227,9 @@ return {
 				"tailwindcss",
 			})
 
-			-- ------------------------------------------------
-			-- FORMAT ON SAVE (sin ts_ls)
-			-- ------------------------------------------------
+			-- ================================================
+			-- FORMATEO AUTOM├üTICO AL GUARDAR
+			-- ================================================
 			local format_group = vim.api.nvim_create_augroup("LspFormatting", { clear = true })
 			vim.api.nvim_create_autocmd("BufWritePre", {
 				group = format_group,
@@ -227,67 +238,67 @@ return {
 					vim.lsp.buf.format({
 						async = false,
 						timeout_ms = 2000,
-						filter = function(c)
-							return c.name ~= "ts_ls"
+						-- No usar ts_ls para formatear (usa eslint/prettier)
+						filter = function(client)
+							return client.name ~= "ts_ls"
 						end,
 					})
 				end,
 			})
 
-			-- ------------------------------------------------
-			-- KEYMAPS (LspAttach)
-			-- ------------------------------------------------
-			local function source_action(kinds)
-				vim.lsp.buf.code_action({
-					context = { only = kinds, diagnostics = {} },
-					apply = true,
-				})
-			end
-
+			-- ================================================
+			-- KEYMAPS DE LSP (con LspAttach)
+			-- ================================================
 			vim.api.nvim_create_autocmd("LspAttach", {
 				callback = function(ev)
 					local opts = { buffer = ev.buf, silent = true }
 
-					-- Navegación
+					-- Navegaci├│n
 					vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
 					vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
 					vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
 					vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
 					vim.keymap.set("n", "gt", vim.lsp.buf.type_definition, opts)
 
-					-- Docs
+					-- Documentaci├│n
 					vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
 					vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
 
-					-- Acciones básicas (IMPORTANTÍSIMO: que <leader>ca sea LSP)
+					-- Acciones b├ísicas
 					vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
 					vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
-
-					-- Formateo manual: lo movemos a <leader>cF para no romper <leader>f (files)
-					vim.keymap.set("n", "<leader>cF", function()
+					vim.keymap.set("n", "<leader>f", function()
 						vim.lsp.buf.format({ async = true })
-					end, { buffer = ev.buf, silent = true, desc = "Format (LSP)" })
+					end, opts)
 
-					-- -------------------------
-					-- TS/JS source actions (kinds correctos)
-					-- -------------------------
-					vim.keymap.set("n", "<leader>cM", function()
-						source_action({ "source.addMissingImports.ts", "source.addMissingImports" })
-					end, { buffer = ev.buf, silent = true, desc = "Añadir imports faltantes" })
-
+					-- ================================================
+					-- IMPORTS (source actions)
+					-- ================================================
+					-- Organizar imports (quitar no usados + ordenar)
 					vim.keymap.set("n", "<leader>co", function()
-						source_action({ "source.organizeImports.ts", "source.organizeImports" })
+						vim.lsp.buf.code_action({
+							context = { only = { "source.organizeImports" }, diagnostics = {} },
+							apply = true,
+						})
 					end, { buffer = ev.buf, silent = true, desc = "Organizar imports" })
 
+					-- Remover imports no usados
 					vim.keymap.set("n", "<leader>cr", function()
-						source_action({ "source.removeUnusedImports.ts", "source.removeUnusedImports" })
-					end, { buffer = ev.buf, silent = true, desc = "Eliminar imports no usados" })
+						vim.lsp.buf.code_action({
+							context = { only = { "source.removeUnused" }, diagnostics = {} },
+							apply = true,
+						})
+					end, { buffer = ev.buf, silent = true, desc = "Remover no usados" })
 
+					-- Fix all (organizar + fixAll)
 					vim.keymap.set("n", "<leader>cf", function()
-						source_action({ "source.fixAll.ts", "source.fixAll" })
-					end, { buffer = ev.buf, silent = true, desc = "Fix all (TS)" })
+						vim.lsp.buf.code_action({
+							context = { only = { "source" }, diagnostics = {} },
+							apply = true,
+						})
+					end, { buffer = ev.buf, silent = true, desc = "Fix all (source)" })
 
-					-- Diagnósticos
+					-- Diagn├│sticos
 					vim.keymap.set("n", "<leader>cd", vim.diagnostic.open_float, opts)
 					vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, opts)
 					vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
@@ -295,17 +306,20 @@ return {
 				end,
 			})
 
-			-- ------------------------------------------------
-			-- Diagnósticos UI
-			-- ------------------------------------------------
+			-- ================================================
+			-- CONFIGURACI├ôN DE DIAGN├ôSTICOS
+			-- ================================================
 			vim.diagnostic.config({
-				virtual_text = { prefix = "●", source = "if_many" },
+				virtual_text = {
+					prefix = "ÔùÅ",
+					source = "if_many",
+				},
 				signs = {
 					text = {
-						[vim.diagnostic.severity.ERROR] = "✘",
-						[vim.diagnostic.severity.WARN] = "▲",
-						[vim.diagnostic.severity.HINT] = "⚑",
-						[vim.diagnostic.severity.INFO] = "»",
+						[vim.diagnostic.severity.ERROR] = "Ô£ÿ",
+						[vim.diagnostic.severity.WARN] = "Ôû▓",
+						[vim.diagnostic.severity.HINT] = "ÔÜæ",
+						[vim.diagnostic.severity.INFO] = "┬╗",
 					},
 				},
 				underline = true,
@@ -319,12 +333,14 @@ return {
 				},
 			})
 
-			-- Bordes redondeados en hovers/signature/etc.
-			local orig = vim.lsp.util.open_floating_preview
-			function vim.lsp.util.open_floating_preview(contents, syntax, o, ...)
-				o = o or {}
-				o.border = o.border or "rounded"
-				return orig(contents, syntax, o, ...)
+			-- ================================================
+			-- UI: Bordes redondeados
+			-- ================================================
+			local orig_util_open_floating_preview = vim.lsp.util.open_floating_preview
+			function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
+				opts = opts or {}
+				opts.border = opts.border or "rounded"
+				return orig_util_open_floating_preview(contents, syntax, opts, ...)
 			end
 		end,
 	},

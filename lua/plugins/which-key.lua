@@ -1,145 +1,102 @@
--- ============================================
--- WHICH-KEY - Menú visual de keymaps
--- ============================================
--- Muestra un popup con los comandos disponibles
--- cuando presionas <leader>
+-- ============================================================================
+-- ARCHIVO: ~/.config/nvim/lua/plugins/which-key.lua
+-- ============================================================================
+-- Which-Key v3
+-- CORREGIDO: sin conflicto <leader>f (files/find) vs format
+-- ============================================================================
 
 return {
 	"folke/which-key.nvim",
 	event = "VeryLazy",
-
 	opts = {
-		-- Configuración básica
 		preset = "modern",
-		delay = 300, -- Tiempo de espera en ms (300 = 0.3 segundos)
-
-		-- Configuración de la ventana
-		win = {
-			border = "rounded",
-			padding = { 1, 2 },
-			title = true,
-			title_pos = "center",
-			zindex = 1000,
+		delay = 500,
+		icons = {
+			mappings = true,
+			keys = {},
 		},
+		spec = {
+			-- ------------------------------------------------
+			-- CODE (LSP)
+			-- ------------------------------------------------
+			{ "<leader>c", group = "code" },
+			{ "<leader>ca", desc = "Code action (LSP)" },
+			{ "<leader>cM", desc = "Añadir imports faltantes (TS)" },
+			{ "<leader>co", desc = "Organizar imports (TS)" },
+			{ "<leader>cr", desc = "Eliminar imports no usados (TS)" },
+			{ "<leader>cf", desc = "Fix all (TS)" },
+			{ "<leader>cF", desc = "Format (LSP)" },
+			{ "<leader>cd", desc = "Diagnóstico flotante" },
+			{ "<leader>cq", desc = "Quickfix list" },
 
-		-- Layout
-		layout = {
-			width = { min = 20, max = 50 },
-			spacing = 3,
-			align = "left",
-		},
+			-- Navegación LSP
+			{ "gd", desc = "Go to definition" },
+			{ "gD", desc = "Go to declaration" },
+			{ "gi", desc = "Go to implementation" },
+			{ "gr", desc = "Go to references" },
+			{ "gt", desc = "Go to type definition" },
+			{ "K", desc = "Hover documentation" },
+			{ "<C-k>", desc = "Signature help" },
 
-		-- Triggers automáticos
-		triggers = {
-			{ "<leader>", mode = { "n", "v" } },
-			{ "<C-w>", mode = "n" },
-			{ "g", mode = { "n", "v" } },
-			{ "z", mode = { "n", "v" } },
-			{ "[", mode = "n" },
-			{ "]", mode = "n" },
-		},
-	},
+			-- Diagnósticos
+			{ "[d", desc = "Previous diagnostic" },
+			{ "]d", desc = "Next diagnostic" },
 
-	config = function(_, opts)
-		local wk = require("which-key")
-		wk.setup(opts)
-
-		-- ============================================
-		-- GRUPOS DE COMANDOS (Organización visual)
-		-- ============================================
-		wk.add({
-			-- AI / CodeCompanion
-			{ "<leader>a", group = "AI" },
-			{ "<leader>ai", desc = "Chat IA" },
-			{ "<leader>at", desc = "Toggle Chat" },
-			{ "<leader>aa", desc = "Acciones IA" },
-			{ "<leader>ae", desc = "Explicar código" },
-			{ "<leader>ab", desc = "Buscar bugs" },
-			{ "<leader>ao", desc = "Optimizar" },
-			{ "<leader>ad", desc = "Documentar" },
-			{ "<leader>am", desc = "Cambiar modelo" },
-			{ "<leader>ax", desc = "Limpiar chat" },
-			{ "<leader>ac", desc = "Chat inline" },
-			{ "<leader>aA", desc = "Agregar a chat" },
-
-			-- Buffers
-			{ "<leader>b", group = "Buffers" },
-			{ "<leader>bd", desc = "Cerrar buffer" },
-
-			-- Code / LSP
-			{ "<leader>c", group = "Code" },
-			{ "<leader>ca", desc = "Code actions" },
-			{ "<leader>cR", desc = "Rename file" },
-			{ "<leader>cw", desc = "Limpiar whitespace" },
-
-			-- Debug
-			{ "<leader>d", group = "Debug" },
-			{ "<leader>db", desc = "Toggle breakpoint" },
-			{ "<leader>dc", desc = "Continue" },
-			{ "<leader>di", desc = "Step into" },
-			{ "<leader>do", desc = "Step over" },
-			{ "<leader>dO", desc = "Step out" },
-			{ "<leader>dt", desc = "Toggle UI" },
-			{ "<leader>dr", desc = "REPL" },
-			{ "<leader>dl", desc = "Run last" },
-
-			-- Files / Find
-			{ "<leader>f", group = "Find" },
+			-- ------------------------------------------------
+			-- FILE/FIND (Snacks)
+			-- ------------------------------------------------
+			{ "<leader>f", group = "file/find" },
 			{ "<leader>ff", desc = "Find files" },
 			{ "<leader>fg", desc = "Live grep" },
 			{ "<leader>fb", desc = "Buffers" },
-			{ "<leader>fh", desc = "Help" },
 			{ "<leader>fr", desc = "Recent files" },
-			{ "<leader>fn", desc = "Nuevo archivo" },
-			{ "<leader>fp", desc = "Copiar path" },
-			{ "<leader>fP", desc = "Copiar path relativo" },
+			{ "<leader>fh", desc = "Help tags" },
 
-			-- Git
-			{ "<leader>g", group = "Git" },
-			{ "<leader>gg", desc = "LazyGit" },
-			{ "<leader>gc", desc = "Commits" },
-			{ "<leader>gs", desc = "Status" },
-			{ "<leader>gb", desc = "Blame line" },
-			{ "<leader>gf", desc = "File history" },
-			{ "<leader>gl", desc = "Log" },
+			-- ------------------------------------------------
+			-- WINDOW / BUFFER
+			-- ------------------------------------------------
+			{ "<leader>w", group = "window" },
+			{ "<leader>b", group = "buffer" },
+			{ "<leader>bd", desc = "Delete buffer" },
 
-			-- Quickfix
-			{ "<leader>q", group = "Quickfix" },
-			{ "<leader>qo", desc = "Abrir quickfix" },
-			{ "<leader>qc", desc = "Cerrar quickfix" },
+			-- ------------------------------------------------
+			-- GIT (Snacks/Lazygit)
+			-- ------------------------------------------------
+			{ "<leader>g", group = "git" },
+			{ "<leader>gg", desc = "Lazygit" },
+			{ "<leader>gs", desc = "Git status" },
+			{ "<leader>gc", desc = "Git commits" },
+			{ "<leader>gb", desc = "Git blame line" },
+			{ "<leader>gf", desc = "File history (lazygit)" },
+			{ "<leader>gl", desc = "Git log (lazygit)" },
 
-			-- Rename (LSP)
-			{ "<leader>r", group = "Rename" },
-			{ "<leader>rn", desc = "Rename symbol" },
+			-- ------------------------------------------------
+			-- NOTIFICATIONS
+			-- ------------------------------------------------
+			{ "<leader>u", group = "ui" },
+			{ "<leader>un", desc = "Notification history" },
 
-			-- Search
-			{ "<leader>s", group = "Search" },
-			{ "<leader>sr", desc = "Reemplazar palabra" },
-			{ "<leader>sw", desc = "Buscar palabra" },
-			{ "<leader>sh", desc = "Split horizontal" },
-			{ "<leader>sv", desc = "Split vertical" },
-			{ "<leader>sx", desc = "Cerrar split" },
+			-- ------------------------------------------------
+			-- AI (CodeCompanion)
+			-- ------------------------------------------------
+			{ "<leader>a", group = "ai" },
+			{ "<leader>ai", desc = "AI Chat" },
+			{ "<leader>at", desc = "Toggle AI Chat" },
+			{ "<leader>aa", desc = "AI Actions" },
+			{ "<leader>aA", desc = "Añadir selección al chat" },
+			{ "<leader>am", desc = "Cambiar adaptador (AI)" },
 
-			-- Terminal
-			{ "<leader>t", group = "Terminal" },
-			{ "<leader>th", desc = "Terminal horizontal" },
-			{ "<leader>tv", desc = "Terminal vertical" },
-
-			-- UI Toggles
-			{ "<leader>u", group = "UI" },
-			{ "<leader>ur", desc = "Toggle números relativos" },
-			{ "<leader>uw", desc = "Toggle word wrap" },
-			{ "<leader>ud", desc = "Toggle diagnósticos" },
-			{ "<leader>us", desc = "Toggle spell check" },
-			{ "<leader>un", desc = "Notificaciones" },
-
-			-- Window management
-			{ "<leader>w", group = "Window" },
-			-- Los sub-comandos se muestran dinámicamente
-
-			-- Otros
-			{ "<leader>-", desc = "Oil (explorador)" },
-			{ "<leader>R", desc = "Recargar config" },
-		})
-	end,
+			-- Help
+			{ "<leader>?", desc = "Buffer Local Keymaps" },
+		},
+	},
+	keys = {
+		{
+			"<leader>?",
+			function()
+				require("which-key").show({ global = false })
+			end,
+			desc = "Buffer Local Keymaps (which-key)",
+		},
+	},
 }

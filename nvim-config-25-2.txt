@@ -55,220 +55,336 @@ return {
 		})
 	end,
 }
--- ============================================
--- CODECOMPANION - SOLUCIÓN DEFINITIVA
--- ============================================
--- Detecta el buffer por NOMBRE, no por filetype
--- Porque el filetype es "lua", no "codecompanion"
+-- ============================================================================
+-- ARCHIVO: ~/.config/nvim/lua/plugins/lsp.lua
+-- ============================================================================
+-- Neovim 0.11+ (vim.lsp.config + vim.lsp.enable)
+-- - Auto-imports y source actions correctas para TS/JS
+-- - ESLint fix-on-save usando LspEslintFixAll (Nvim 0.11+)
+-- - Keymaps LSP sin conflictos con <leader>f (files/find)
+-- ============================================================================
 
 return {
-	"olimorris/codecompanion.nvim",
-	dependencies = {
-		"nvim-lua/plenary.nvim",
-		"nvim-treesitter/nvim-treesitter",
-		"hrsh7th/nvim-cmp",
-		{ "stevearc/dressing.nvim", opts = {} },
+	-- Mason: Instalador de LSP servers
+	{
+		"williamboman/mason.nvim",
+		lazy = false,
+		priority = 100,
+		config = function()
+			require("mason").setup({
+				ui = {
+					border = "rounded",
+					icons = {
+						package_installed = "✓",
+						package_pending = "➜",
+						package_uninstalled = "✗",
+					},
+				},
+			})
+		end,
 	},
 
-	config = function()
-		require("codecompanion").setup({
-			strategies = {
-				chat = { adapter = "ollama" },
-				inline = { adapter = "ollama" },
-				agent = { adapter = "ollama" },
-			},
+	-- Mason-LSPConfig: Puente entre Mason y nvim-lspconfig
+	{
+		"williamboman/mason-lspconfig.nvim",
+		lazy = false,
+		priority = 99,
+		dependencies = { "williamboman/mason.nvim" },
+		config = function()
+			require("mason-lspconfig").setup({
+				ensure_installed = {
+					"ts_ls", -- TypeScript/JavaScript
+					"eslint", -- Linter/Formatter
+					"html", -- HTML
+					"cssls", -- CSS/SCSS
+					"tailwindcss", -- Tailwind CSS
+					"lua_ls", -- Lua
+					"jsonls", -- JSON
+				},
+				-- Neovim 0.11+
+				automatic_enable = true,
+			})
+		end,
+	},
 
-			adapters = {
-				ollama = function()
-					return require("codecompanion.adapters").extend("ollama", {
-						name = "ollama",
-						schema = {
-							model = {
-								default = "qwen2.5-coder:7b",
-								choices = {
-									"qwen2.5-coder:7b",
-									"deepseek-r1:7b",
-									"llama3.2:3b",
-									"codellama:7b",
-								},
-							},
-							num_ctx = { default = 32768 },
-							temperature = { default = 0.3 },
+	-- nvim-lspconfig
+	{
+		"neovim/nvim-lspconfig",
+		lazy = false,
+		priority = 98,
+		dependencies = {
+			"hrsh7th/cmp-nvim-lsp",
+			"b0o/schemastore.nvim",
+		},
+		config = function()
+			local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+			-- ------------------------------------------------
+			-- LUA
+			-- ------------------------------------------------
+			vim.lsp.config("lua_ls", {
+				capabilities = capabilities,
+				settings = {
+					Lua = {
+						runtime = { version = "LuaJIT" },
+						diagnostics = { globals = { "vim" } },
+						workspace = {
+							library = vim.api.nvim_get_runtime_file("", true),
+							checkThirdParty = false,
 						},
+						telemetry = { enable = false },
+						format = { enable = false },
+					},
+				},
+			})
+
+			-- ------------------------------------------------
+			-- TS/JS (ts_ls)
+			-- ------------------------------------------------
+			vim.lsp.config("ts_ls", {
+				capabilities = capabilities,
+				init_options = {
+					hostInfo = "neovim",
+					preferences = {
+						includeCompletionsForModuleExports = true,
+						includeCompletionsWithInsertText = true,
+						includePackageJsonAutoImports = "auto",
+						importModuleSpecifierPreference = "relative",
+						jsxAttributeCompletionStyle = "auto",
+						quotePreference = "double",
+					},
+				},
+				settings = {
+					typescript = {
+						inlayHints = {
+							includeInlayParameterNameHints = "all",
+							includeInlayFunctionParameterTypeHints = true,
+							includeInlayVariableTypeHints = false,
+							includeInlayPropertyDeclarationTypeHints = true,
+							includeInlayFunctionLikeReturnTypeHints = true,
+						},
+						suggest = {
+							includeCompletionsForModuleExports = true,
+						},
+					},
+					javascript = {
+						inlayHints = {
+							includeInlayParameterNameHints = "all",
+							includeInlayFunctionParameterTypeHints = true,
+							includeInlayVariableTypeHints = false,
+							includeInlayPropertyDeclarationTypeHints = true,
+							includeInlayFunctionLikeReturnTypeHints = true,
+						},
+						suggest = {
+							includeCompletionsForModuleExports = true,
+						},
+					},
+				},
+			})
+
+			-- ------------------------------------------------
+			-- HTML
+			-- ------------------------------------------------
+			vim.lsp.config("html", {
+				capabilities = capabilities,
+				filetypes = { "html", "htmldjango" },
+			})
+
+			-- ------------------------------------------------
+			-- CSS
+			-- ------------------------------------------------
+			vim.lsp.config("cssls", {
+				capabilities = capabilities,
+				settings = {
+					css = {
+						validate = true,
+						lint = { unknownAtRules = "ignore" },
+					},
+					scss = { validate = true },
+					less = { validate = true },
+				},
+			})
+
+			-- ------------------------------------------------
+			-- ESLint (fix-on-save correcto en Nvim 0.11+)
+			-- ------------------------------------------------
+			local base_eslint_on_attach = vim.lsp.config.eslint and vim.lsp.config.eslint.on_attach or nil
+
+			vim.lsp.config("eslint", {
+				capabilities = capabilities,
+				on_attach = function(client, bufnr)
+					-- Mantener el on_attach base de lspconfig (crea el comando LspEslintFixAll)
+					if base_eslint_on_attach then
+						base_eslint_on_attach(client, bufnr)
+					end
+
+					-- Fix al guardar (usa el comando buffer-local creado por lspconfig)
+					vim.api.nvim_create_autocmd("BufWritePre", {
+						buffer = bufnr,
+						command = "LspEslintFixAll",
 					})
 				end,
+				settings = {
+					workingDirectories = { mode = "auto" },
+				},
+			})
 
-				huggingface = function()
-					return require("codecompanion.adapters").extend("openai_compatible", {
-						name = "huggingface",
-						url = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct/v1/chat/completions",
-						env = {
-							api_key = "HUGGINGFACE_API_KEY",
-						},
-						headers = {
-							["Content-Type"] = "application/json",
-						},
-						schema = {
-							model = {
-								default = "meta-llama/Llama-3.2-3B-Instruct",
+			-- ------------------------------------------------
+			-- JSON
+			-- ------------------------------------------------
+			vim.lsp.config("jsonls", {
+				capabilities = capabilities,
+				settings = {
+					json = {
+						schemas = require("schemastore").json.schemas(),
+						validate = { enable = true },
+					},
+				},
+			})
+
+			-- ------------------------------------------------
+			-- Tailwind
+			-- ------------------------------------------------
+			vim.lsp.config("tailwindcss", {
+				capabilities = capabilities,
+				settings = {
+					tailwindCSS = {
+						experimental = {
+							classRegex = {
+								{ "cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" },
+								{ "cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)" },
+								{ "clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)" },
 							},
-							temperature = { default = 0.7 },
-							max_tokens = { default = 4096 },
 						},
+					},
+				},
+			})
+
+			-- ------------------------------------------------
+			-- HABILITAR SERVIDORES
+			-- ------------------------------------------------
+			vim.lsp.enable({
+				"lua_ls",
+				"ts_ls",
+				"html",
+				"cssls",
+				"eslint",
+				"jsonls",
+				"tailwindcss",
+			})
+
+			-- ------------------------------------------------
+			-- FORMAT ON SAVE (sin ts_ls)
+			-- ------------------------------------------------
+			local format_group = vim.api.nvim_create_augroup("LspFormatting", { clear = true })
+			vim.api.nvim_create_autocmd("BufWritePre", {
+				group = format_group,
+				pattern = { "*.ts", "*.tsx", "*.js", "*.jsx", "*.lua", "*.json", "*.html", "*.css" },
+				callback = function()
+					vim.lsp.buf.format({
+						async = false,
+						timeout_ms = 2000,
+						filter = function(c)
+							return c.name ~= "ts_ls"
+						end,
 					})
 				end,
-			},
+			})
 
-			display = {
-				diff = {
-					provider = "mini_diff",
-				},
-				chat = {
-					window = {
-						layout = "vertical",
-						width = 0.45,
-						height = 0.8,
-						relative = "editor",
-					},
-					show_settings = true,
-					keymaps = {
-						close = {
-							modes = {
-								n = "q",
-								i = false,
-							},
-						},
-						send = {
-							modes = {
-								n = "<CR>",
-								i = "<C-s>",
-							},
-						},
-					},
-				},
-			},
-
-			opts = {
-				log_level = "ERROR",
-				send_code = true,
-				use_default_actions = true,
-				system_prompt = [[Eres un asistente experto en programación.
-SIEMPRE responde en español.
-Especialízate en JavaScript, TypeScript y desarrollo web.
-Sé claro, conciso y proporciona ejemplos prácticos.]],
-			},
-
-			prompt_library = {
-				["Explicar código"] = {
-					strategy = "chat",
-					description = "Explica el código seleccionado",
-					prompts = {
-						{
-							role = "system",
-							content = "Explica código de forma clara para alguien aprendiendo programación.",
-						},
-						{
-							role = "user",
-							content = function(context)
-								return "Explica este código:\n\n```"
-									.. context.filetype
-									.. "\n"
-									.. context.selection
-									.. "\n```"
-							end,
-						},
-					},
-				},
-				["Encontrar bugs"] = {
-					strategy = "chat",
-					description = "Revisa el código en busca de errores",
-					prompts = {
-						{
-							role = "system",
-							content = "Eres un experto en debugging.",
-						},
-						{
-							role = "user",
-							content = function(context)
-								return "Revisa bugs:\n\n```" .. context.filetype .. "\n" .. context.selection .. "\n```"
-							end,
-						},
-					},
-				},
-			},
-		})
-
-		-- ============================================
-		-- SOLUCIÓN: Detectar por NOMBRE de buffer
-		-- ============================================
-		-- Como el filetype es "lua", detectamos por nombre
-
-		local function is_codecompanion_buffer(buf)
-			local bufname = vim.api.nvim_buf_get_name(buf)
-			-- Los buffers de CodeCompanion tienen "codecompanion" en el nombre
-			return bufname:match("codecompanion") ~= nil or bufname:match("CodeCompanion") ~= nil
-		end
-
-		local function setup_codecompanion_keymaps(buf)
-			-- Verificar que sea realmente un buffer de CodeCompanion
-			if not is_codecompanion_buffer(buf) then
-				return
+			-- ------------------------------------------------
+			-- KEYMAPS (LspAttach)
+			-- ------------------------------------------------
+			local function source_action(kinds)
+				vim.lsp.buf.code_action({
+					context = { only = kinds, diagnostics = {} },
+					apply = true,
+				})
 			end
 
-			-- ENTER: Enviar mensaje
-			pcall(vim.keymap.del, "n", "<CR>", { buffer = buf })
-			vim.keymap.set("n", "<CR>", function()
-				pcall(vim.cmd, "CodeCompanionChat Submit")
-			end, {
-				buffer = buf,
-				noremap = true,
-				silent = true,
-				desc = "Enviar mensaje",
+			vim.api.nvim_create_autocmd("LspAttach", {
+				callback = function(ev)
+					local opts = { buffer = ev.buf, silent = true }
+
+					-- Navegación
+					vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+					vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
+					vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+					vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+					vim.keymap.set("n", "gt", vim.lsp.buf.type_definition, opts)
+
+					-- Docs
+					vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+					vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
+
+					-- Acciones básicas (IMPORTANTÍSIMO: que <leader>ca sea LSP)
+					vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
+					vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+
+					-- Formateo manual: lo movemos a <leader>cF para no romper <leader>f (files)
+					vim.keymap.set("n", "<leader>cF", function()
+						vim.lsp.buf.format({ async = true })
+					end, { buffer = ev.buf, silent = true, desc = "Format (LSP)" })
+
+					-- -------------------------
+					-- TS/JS source actions (kinds correctos)
+					-- -------------------------
+					vim.keymap.set("n", "<leader>cM", function()
+						source_action({ "source.addMissingImports.ts", "source.addMissingImports" })
+					end, { buffer = ev.buf, silent = true, desc = "Añadir imports faltantes" })
+
+					vim.keymap.set("n", "<leader>co", function()
+						source_action({ "source.organizeImports.ts", "source.organizeImports" })
+					end, { buffer = ev.buf, silent = true, desc = "Organizar imports" })
+
+					vim.keymap.set("n", "<leader>cr", function()
+						source_action({ "source.removeUnusedImports.ts", "source.removeUnusedImports" })
+					end, { buffer = ev.buf, silent = true, desc = "Eliminar imports no usados" })
+
+					vim.keymap.set("n", "<leader>cf", function()
+						source_action({ "source.fixAll.ts", "source.fixAll" })
+					end, { buffer = ev.buf, silent = true, desc = "Fix all (TS)" })
+
+					-- Diagnósticos
+					vim.keymap.set("n", "<leader>cd", vim.diagnostic.open_float, opts)
+					vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, opts)
+					vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
+					vim.keymap.set("n", "<leader>cq", vim.diagnostic.setloclist, opts)
+				end,
 			})
-		end
 
-		-- ============================================
-		-- AUTOCMD: Detectar CUALQUIER buffer nuevo
-		-- ============================================
-		vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
-			pattern = "*",
-			callback = function(ev)
-				local buf = ev.buf
+			-- ------------------------------------------------
+			-- Diagnósticos UI
+			-- ------------------------------------------------
+			vim.diagnostic.config({
+				virtual_text = { prefix = "●", source = "if_many" },
+				signs = {
+					text = {
+						[vim.diagnostic.severity.ERROR] = "✘",
+						[vim.diagnostic.severity.WARN] = "▲",
+						[vim.diagnostic.severity.HINT] = "⚑",
+						[vim.diagnostic.severity.INFO] = "»",
+					},
+				},
+				underline = true,
+				update_in_insert = false,
+				severity_sort = true,
+				float = {
+					border = "rounded",
+					source = "always",
+					header = "",
+					prefix = "",
+				},
+			})
 
-				-- Verificar si es buffer de CodeCompanion
-				if is_codecompanion_buffer(buf) then
-					-- Mover a la derecha
-					vim.defer_fn(function()
-						vim.cmd("wincmd L")
-					end, 50)
-
-					-- Aplicar keymaps
-					vim.defer_fn(function()
-						setup_codecompanion_keymaps(buf)
-					end, 100)
-
-					-- Reaplicar keymaps (por si CodeCompanion los sobrescribe)
-					vim.defer_fn(function()
-						setup_codecompanion_keymaps(buf)
-					end, 250)
-				end
-			end,
-		})
-
-		-- ============================================
-		-- REFORZAR: Cuando entras a insert y sales
-		-- ============================================
-		vim.api.nvim_create_autocmd("InsertLeave", {
-			pattern = "*",
-			callback = function(ev)
-				if is_codecompanion_buffer(ev.buf) then
-					vim.schedule(function()
-						setup_codecompanion_keymaps(ev.buf)
-					end)
-				end
-			end,
-		})
-	end,
+			-- Bordes redondeados en hovers/signature/etc.
+			local orig = vim.lsp.util.open_floating_preview
+			function vim.lsp.util.open_floating_preview(contents, syntax, o, ...)
+				o = o or {}
+				o.border = o.border or "rounded"
+				return orig(contents, syntax, o, ...)
+			end
+		end,
+	},
 }
 -- ============================================
 -- SNACKS.NVIM - Reemplazo moderno de Telescope
@@ -482,154 +598,193 @@ return {
   end,
 }
 
--- ~/.config/nvim/lua/plugins/lsp.lua
--- ============================================
--- LSP CONFIG – JS / TS / React con auto-imports reales
--- ============================================
+-- ============================================================================
+-- ARCHIVO 1: ~/.config/nvim/lua/plugins/lsp.lua
+-- ============================================================================
+-- Configuraci├│n DEFINITIVA de LSP basada en nvim-lspconfig oficial
+-- Compatible con Neovim 0.11+ y mejores pr├ícticas 2024-2025
+-- AUTO-IMPORTS REALES para TypeScript/JavaScript/React
 
 return {
+	-- Mason: Instalador de LSP servers
 	{
 		"williamboman/mason.nvim",
 		lazy = false,
+		priority = 100,
 		config = function()
 			require("mason").setup({
 				ui = {
 					border = "rounded",
 					icons = {
-						package_installed = "✓",
-						package_pending = "➜",
-						package_uninstalled = "✗",
+						package_installed = "Ô£ô",
+						package_pending = "Ô×£",
+						package_uninstalled = "Ô£ù",
 					},
 				},
 			})
 		end,
 	},
 
+	-- Mason-LSPConfig: Puente entre Mason y nvim-lspconfig
 	{
 		"williamboman/mason-lspconfig.nvim",
 		lazy = false,
-		opts = {
-			ensure_installed = {
-				"ts_ls",
-				"eslint",
-				"html",
-				"cssls",
-				"tailwindcss",
-				"lua_ls",
-				"jsonls",
-			},
-			automatic_installation = true,
-		},
+		priority = 99,
+		dependencies = { "williamboman/mason.nvim" },
+		config = function()
+			require("mason-lspconfig").setup({
+				ensure_installed = {
+					"ts_ls", -- TypeScript/JavaScript
+					"eslint", -- Linter/Formatter
+					"html", -- HTML
+					"cssls", -- CSS/SCSS
+					"tailwindcss", -- Tailwind CSS
+					"lua_ls", -- Lua
+					"jsonls", -- JSON
+				},
+				-- IMPORTANTE: En Neovim 0.11+, automatic_enable reemplaza automatic_setup
+				-- Esto permite que vim.lsp.enable() funcione correctamente
+				automatic_enable = true,
+			})
+		end,
 	},
 
+	-- nvim-lspconfig: Configuraciones oficiales de LSP
 	{
 		"neovim/nvim-lspconfig",
 		lazy = false,
+		priority = 98,
 		dependencies = {
-			"hrsh7th/cmp-nvim-lsp",
-			"b0o/schemastore.nvim",
+			"hrsh7th/cmp-nvim-lsp", -- Para capabilities de autocompletado
+			"b0o/schemastore.nvim", -- Para JSON schemas
 		},
 
 		config = function()
+			-- ================================================
+			-- CAPABILITIES (para que LSP funcione con nvim-cmp)
+			-- ================================================
 			local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-			-- ============================================
-			-- LUA (Neovim)
-			-- ============================================
+			-- ================================================
+			-- CONFIGURACI├ôN: LUA (para configuraci├│n de Neovim)
+			-- ================================================
 			vim.lsp.config("lua_ls", {
 				capabilities = capabilities,
 				settings = {
 					Lua = {
+						runtime = { version = "LuaJIT" },
 						diagnostics = { globals = { "vim" } },
 						workspace = {
 							library = vim.api.nvim_get_runtime_file("", true),
 							checkThirdParty = false,
 						},
 						telemetry = { enable = false },
+						format = { enable = false }, -- Usar stylua externo
 					},
 				},
 			})
 
-			-- ============================================
-			-- TYPESCRIPT / JAVASCRIPT (AUTO-IMPORTS REAL)
-			-- ============================================
+			-- ================================================
+			-- CONFIGURACI├ôN: TYPESCRIPT/JAVASCRIPT (LA CLAVE)
+			-- ================================================
+			-- Basado en la configuraci├│n oficial de nvim-lspconfig
+			-- y typescript-language-server documentation
 			vim.lsp.config("ts_ls", {
 				capabilities = capabilities,
 
+				-- CRITICAL: init_options es REQUERIDO para auto-imports
 				init_options = {
 					hostInfo = "neovim",
 					preferences = {
+						-- ESTAS son las opciones que hacen funcionar auto-import
 						includeCompletionsForModuleExports = true,
 						includeCompletionsWithInsertText = true,
 						includePackageJsonAutoImports = "auto",
 						importModuleSpecifierPreference = "relative",
+						jsxAttributeCompletionStyle = "auto",
+						quotePreference = "double",
 					},
 				},
 
+				-- Settings adicionales (opcional pero recomendado)
 				settings = {
 					typescript = {
+						inlayHints = {
+							includeInlayParameterNameHints = "all",
+							includeInlayFunctionParameterTypeHints = true,
+							includeInlayVariableTypeHints = false,
+							includeInlayPropertyDeclarationTypeHints = true,
+							includeInlayFunctionLikeReturnTypeHints = true,
+						},
 						suggest = {
 							includeCompletionsForModuleExports = true,
-						},
-						preferences = {
-							importModuleSpecifier = "relative",
-							jsxAttributeCompletionStyle = "auto",
-							quotePreference = "double",
 						},
 					},
 					javascript = {
+						inlayHints = {
+							includeInlayParameterNameHints = "all",
+							includeInlayFunctionParameterTypeHints = true,
+							includeInlayVariableTypeHints = false,
+							includeInlayPropertyDeclarationTypeHints = true,
+							includeInlayFunctionLikeReturnTypeHints = true,
+						},
 						suggest = {
 							includeCompletionsForModuleExports = true,
-						},
-						preferences = {
-							importModuleSpecifier = "relative",
-							jsxAttributeCompletionStyle = "auto",
-							quotePreference = "double",
 						},
 					},
 				},
 			})
 
-			-- ============================================
-			-- HTML
-			-- ============================================
+			-- ================================================
+			-- CONFIGURACI├ôN: HTML
+			-- ================================================
 			vim.lsp.config("html", {
 				capabilities = capabilities,
+				filetypes = { "html", "htmldjango" },
 			})
 
-			-- ============================================
-			-- CSS
-			-- ============================================
+			-- ================================================
+			-- CONFIGURACI├ôN: CSS/SCSS/Less
+			-- ================================================
 			vim.lsp.config("cssls", {
 				capabilities = capabilities,
 				settings = {
-					css = { validate = true },
+					css = {
+						validate = true,
+						lint = { unknownAtRules = "ignore" },
+					},
 					scss = { validate = true },
 					less = { validate = true },
 				},
 			})
 
-			-- ============================================
-			-- ESLINT (FIX ALL + IMPORTS)
-			-- ============================================
+			-- ================================================
+			-- CONFIGURACI├ôN: ESLINT (Linter + Formatter)
+			-- ================================================
+			-- Guarda el on_attach base (antes de sobreescribirlo)
+			local base_eslint_on_attach = vim.lsp.config.eslint and vim.lsp.config.eslint.on_attach or nil
+
 			vim.lsp.config("eslint", {
 				capabilities = capabilities,
-				on_attach = function(_, bufnr)
+				on_attach = function(client, bufnr)
+					-- Esto crea el comando buffer-local :LspEslintFixAll
+					if base_eslint_on_attach then
+						base_eslint_on_attach(client, bufnr)
+					end
+
+					-- Fix al guardar
 					vim.api.nvim_create_autocmd("BufWritePre", {
 						buffer = bufnr,
-						callback = function()
-							vim.lsp.buf.code_action({
-								context = { only = { "source.fixAll.eslint" } },
-								apply = true,
-							})
-						end,
+						command = "LspEslintFixAll",
 					})
 				end,
+				settings = {
+					workingDirectories = { mode = "auto" },
+				},
 			})
-
-			-- ============================================
-			-- JSON
-			-- ============================================
+			-- ================================================
+			-- CONFIGURACI├ôN: JSON
+			-- ================================================
 			vim.lsp.config("jsonls", {
 				capabilities = capabilities,
 				settings = {
@@ -640,16 +795,28 @@ return {
 				},
 			})
 
-			-- ============================================
-			-- TAILWIND
-			-- ============================================
+			-- ================================================
+			-- CONFIGURACI├ôN: TAILWIND CSS
+			-- ================================================
 			vim.lsp.config("tailwindcss", {
 				capabilities = capabilities,
+				settings = {
+					tailwindCSS = {
+						experimental = {
+							classRegex = {
+								{ "cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" },
+								{ "cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)" },
+								{ "clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)" },
+							},
+						},
+					},
+				},
 			})
 
-			-- ============================================
-			-- HABILITAR SERVIDORES
-			-- ============================================
+			-- ================================================
+			-- HABILITAR TODOS LOS SERVIDORES (IMPORTANTE)
+			-- ================================================
+			-- En Neovim 0.11+, vim.lsp.enable() reemplaza setup()
 			vim.lsp.enable({
 				"lua_ls",
 				"ts_ls",
@@ -660,48 +827,121 @@ return {
 				"tailwindcss",
 			})
 
-			-- ============================================
-			-- FORMATEO
-			-- ============================================
+			-- ================================================
+			-- FORMATEO AUTOM├üTICO AL GUARDAR
+			-- ================================================
+			local format_group = vim.api.nvim_create_augroup("LspFormatting", { clear = true })
 			vim.api.nvim_create_autocmd("BufWritePre", {
+				group = format_group,
 				pattern = { "*.ts", "*.tsx", "*.js", "*.jsx", "*.lua", "*.json", "*.html", "*.css" },
 				callback = function()
-					vim.lsp.buf.format({ async = false })
+					vim.lsp.buf.format({
+						async = false,
+						timeout_ms = 2000,
+						-- No usar ts_ls para formatear (usa eslint/prettier)
+						filter = function(client)
+							return client.name ~= "ts_ls"
+						end,
+					})
 				end,
 			})
 
-			-- ============================================
-			-- KEYMAPS + IMPORTS
-			-- ============================================
+			-- ================================================
+			-- KEYMAPS DE LSP (con LspAttach)
+			-- ================================================
 			vim.api.nvim_create_autocmd("LspAttach", {
 				callback = function(ev)
 					local opts = { buffer = ev.buf, silent = true }
 
-					-- Navegación
+					-- Navegaci├│n
 					vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+					vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
+					vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
 					vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
-					vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+					vim.keymap.set("n", "gt", vim.lsp.buf.type_definition, opts)
 
-					-- Acciones
+					-- Documentaci├│n
+					vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+					vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
+
+					-- Acciones b├ísicas
 					vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
 					vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+					vim.keymap.set("n", "<leader>f", function()
+						vim.lsp.buf.format({ async = true })
+					end, opts)
 
-					-- IMPORTS (las ÚNICAS válidas)
-					vim.keymap.set("n", "<leader>oi", function()
+					-- ================================================
+					-- IMPORTS (source actions)
+					-- ================================================
+					-- Organizar imports (quitar no usados + ordenar)
+					vim.keymap.set("n", "<leader>co", function()
 						vim.lsp.buf.code_action({
-							context = { only = { "source.organizeImports" } },
+							context = { only = { "source.organizeImports" }, diagnostics = {} },
 							apply = true,
 						})
-					end, { buffer = ev.buf, desc = "Organizar imports" })
+					end, { buffer = ev.buf, silent = true, desc = "Organizar imports" })
 
-					vim.keymap.set("n", "<leader>fa", function()
+					-- Remover imports no usados
+					vim.keymap.set("n", "<leader>cr", function()
 						vim.lsp.buf.code_action({
-							context = { only = { "source.fixAll" } },
+							context = { only = { "source.removeUnused" }, diagnostics = {} },
 							apply = true,
 						})
-					end, { buffer = ev.buf, desc = "Fix all" })
+					end, { buffer = ev.buf, silent = true, desc = "Remover no usados" })
+
+					-- Fix all (organizar + fixAll)
+					vim.keymap.set("n", "<leader>cf", function()
+						vim.lsp.buf.code_action({
+							context = { only = { "source" }, diagnostics = {} },
+							apply = true,
+						})
+					end, { buffer = ev.buf, silent = true, desc = "Fix all (source)" })
+
+					-- Diagn├│sticos
+					vim.keymap.set("n", "<leader>cd", vim.diagnostic.open_float, opts)
+					vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, opts)
+					vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
+					vim.keymap.set("n", "<leader>cq", vim.diagnostic.setloclist, opts)
 				end,
 			})
+
+			-- ================================================
+			-- CONFIGURACI├ôN DE DIAGN├ôSTICOS
+			-- ================================================
+			vim.diagnostic.config({
+				virtual_text = {
+					prefix = "ÔùÅ",
+					source = "if_many",
+				},
+				signs = {
+					text = {
+						[vim.diagnostic.severity.ERROR] = "Ô£ÿ",
+						[vim.diagnostic.severity.WARN] = "Ôû▓",
+						[vim.diagnostic.severity.HINT] = "ÔÜæ",
+						[vim.diagnostic.severity.INFO] = "┬╗",
+					},
+				},
+				underline = true,
+				update_in_insert = false,
+				severity_sort = true,
+				float = {
+					border = "rounded",
+					source = "always",
+					header = "",
+					prefix = "",
+				},
+			})
+
+			-- ================================================
+			-- UI: Bordes redondeados
+			-- ================================================
+			local orig_util_open_floating_preview = vim.lsp.util.open_floating_preview
+			function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
+				opts = opts or {}
+				opts.border = opts.border or "rounded"
+				return orig_util_open_floating_preview(contents, syntax, opts, ...)
+			end
 		end,
 	},
 }
@@ -1095,39 +1335,56 @@ return {
   end,
 }
 
--- ~/.config/nvim/lua/plugins/cmp.lua
--- Autocompletado con nvim-cmp
+-- ============================================================================
+-- ARCHIVO 2: ~/.config/nvim/lua/plugins/cmp.lua
+-- ============================================================================
+-- Configuración de nvim-cmp con soporte completo para auto-imports
 
 return {
-	{
-		"hrsh7th/cmp-nvim-lsp",
-	},
-	{
-		"hrsh7th/cmp-buffer", -- ← AGREGADO
-	},
-	{
-		"hrsh7th/cmp-path", -- ← AGREGADO (PATHS)
-	},
-	{
-		"hrsh7th/cmp-cmdline", -- ← AGREGADO (comandos)
-	},
+	-- Dependencies first
+	{ "hrsh7th/cmp-nvim-lsp" },
+	{ "hrsh7th/cmp-buffer" },
+	{ "hrsh7th/cmp-path" },
+	{ "hrsh7th/cmp-cmdline" },
+
+	-- Snippets
 	{
 		"L3MON4D3/LuaSnip",
+		version = "v2.*",
+		build = "make install_jsregexp",
 		dependencies = {
 			"saadparwaiz1/cmp_luasnip",
 			"rafamadriz/friendly-snippets",
 		},
 	},
+
+	-- nvim-cmp main plugin
 	{
 		"hrsh7th/nvim-cmp",
+		event = { "InsertEnter", "CmdlineEnter" },
+		dependencies = {
+			"hrsh7th/cmp-nvim-lsp",
+			"hrsh7th/cmp-buffer",
+			"hrsh7th/cmp-path",
+			"hrsh7th/cmp-cmdline",
+			"L3MON4D3/LuaSnip",
+			"saadparwaiz1/cmp_luasnip",
+		},
+
 		config = function()
 			local cmp = require("cmp")
+			local luasnip = require("luasnip")
+
+			-- Cargar snippets de friendly-snippets
 			require("luasnip.loaders.from_vscode").lazy_load()
 
+			-- ================================================
+			-- CONFIGURACIÓN PRINCIPAL DE CMP
+			-- ================================================
 			cmp.setup({
 				snippet = {
 					expand = function(args)
-						require("luasnip").lsp_expand(args.body)
+						luasnip.lsp_expand(args.body)
 					end,
 				},
 
@@ -1137,15 +1394,26 @@ return {
 				},
 
 				mapping = cmp.mapping.preset.insert({
+					-- Scroll docs
 					["<C-b>"] = cmp.mapping.scroll_docs(-4),
 					["<C-f>"] = cmp.mapping.scroll_docs(4),
+
+					-- Trigger completion
 					["<C-Space>"] = cmp.mapping.complete(),
 					["<C-e>"] = cmp.mapping.abort(),
-					["<CR>"] = cmp.mapping.confirm({ select = false }),
 
+					-- Confirm
+					["<CR>"] = cmp.mapping.confirm({
+						behavior = cmp.ConfirmBehavior.Replace,
+						select = true, -- Auto-select first item
+					}),
+
+					-- Tab/S-Tab para navegación y snippets
 					["<Tab>"] = cmp.mapping(function(fallback)
 						if cmp.visible() then
 							cmp.select_next_item()
+						elseif luasnip.expand_or_jumpable() then
+							luasnip.expand_or_jump()
 						else
 							fallback()
 						end
@@ -1154,62 +1422,136 @@ return {
 					["<S-Tab>"] = cmp.mapping(function(fallback)
 						if cmp.visible() then
 							cmp.select_prev_item()
+						elseif luasnip.jumpable(-1) then
+							luasnip.jump(-1)
 						else
 							fallback()
 						end
 					end, { "i", "s" }),
 				}),
 
+				-- ================================================
+				-- SOURCES (orden importa para prioridad)
+				-- ================================================
 				sources = cmp.config.sources({
-					{ name = "nvim_lsp", priority = 1000 },
+					{
+						name = "nvim_lsp",
+						priority = 1000,
+						-- CRÍTICO: No filtrar nada, dejar que LSP muestre todo
+						entry_filter = function(entry, ctx)
+							return true
+						end,
+					},
 					{ name = "luasnip", priority = 750 },
 					{
-						name = "path", -- ← PATHS
+						name = "path",
 						priority = 500,
-						option = {
-							trailing_slash = true,
-						},
+						option = { trailing_slash = true },
 					},
 				}, {
 					{
 						name = "buffer",
 						priority = 250,
-						keyword_length = 3, -- Solo autocompletar después de 3 chars
+						keyword_length = 3,
+						option = {
+							get_bufnrs = function()
+								return vim.api.nvim_list_bufs()
+							end,
+						},
 					},
 				}),
 
-				-- Formato con iconos (opcional pero bonito)
+				-- ================================================
+				-- FORMATTING (iconos y labels)
+				-- ================================================
 				formatting = {
+					fields = { "kind", "abbr", "menu" },
 					format = function(entry, vim_item)
-						local icons = {
+						-- Iconos por kind
+						local kind_icons = {
+							Text = "󰉿",
+							Method = "󰆧",
+							Function = "󰊕",
+							Constructor = "",
+							Field = "󰜢",
+							Variable = "󰀫",
+							Class = "󰠱",
+							Interface = "",
+							Module = "",
+							Property = "󰜢",
+							Unit = "󰑭",
+							Value = "󰎠",
+							Enum = "",
+							Keyword = "󰌋",
+							Snippet = "",
+							Color = "󰏆",
+							File = "󰈙",
+							Reference = "󰈇",
+							Folder = "󰉋",
+							EnumMember = "",
+							Constant = "󰏿",
+							Struct = "󰙅",
+							Event = "",
+							Operator = "󰆕",
+							TypeParameter = "",
+						}
+
+						vim_item.kind = string.format("%s %s", kind_icons[vim_item.kind] or "", vim_item.kind)
+
+						-- Source name
+						local source_names = {
 							nvim_lsp = "[LSP]",
-							luasnip = "[Snippet]",
-							buffer = "[Buffer]",
+							luasnip = "[Snip]",
+							buffer = "[Buf]",
 							path = "[Path]",
 						}
-						vim_item.menu = icons[entry.source.name]
+						vim_item.menu = source_names[entry.source.name] or ""
+
 						return vim_item
 					end,
 				},
+
+				-- ================================================
+				-- EXPERIMENTAL: Ghost text
+				-- ================================================
+				experimental = {
+					ghost_text = {
+						hl_group = "CmpGhostText",
+					},
+				},
 			})
 
-			-- Autocompletado en comandos (IMPORTANTE PARA PATHS)
+			-- ================================================
+			-- CMP PARA COMANDOS (paths incluidos)
+			-- ================================================
 			cmp.setup.cmdline(":", {
 				mapping = cmp.mapping.preset.cmdline(),
 				sources = cmp.config.sources({
-					{ name = "path" }, -- Paths primero en comandos
+					{ name = "path" },
 				}, {
-					{ name = "cmdline" },
+					{
+						name = "cmdline",
+						option = {
+							ignore_cmds = { "Man", "!" },
+						},
+					},
 				}),
 			})
 
-			-- Autocompletado en búsqueda
+			-- ================================================
+			-- CMP PARA BÚSQUEDA
+			-- ================================================
 			cmp.setup.cmdline({ "/", "?" }, {
 				mapping = cmp.mapping.preset.cmdline(),
 				sources = {
 					{ name = "buffer" },
 				},
 			})
+
+			-- ================================================
+			-- HIGHLIGHT PARA GHOST TEXT
+			-- ================================================
+			vim.api.nvim_set_hl(0, "CmpGhostText", { link = "Comment", default = true })
 		end,
 	},
 }
@@ -1281,150 +1623,107 @@ return {
     "nvim-tree/nvim-web-devicons",
   },
 }
--- ============================================
--- WHICH-KEY - Menú visual de keymaps
--- ============================================
--- Muestra un popup con los comandos disponibles
--- cuando presionas <leader>
+-- ============================================================================
+-- ARCHIVO: ~/.config/nvim/lua/plugins/which-key.lua
+-- ============================================================================
+-- Which-Key v3
+-- CORREGIDO: sin conflicto <leader>f (files/find) vs format
+-- ============================================================================
 
 return {
 	"folke/which-key.nvim",
 	event = "VeryLazy",
-
 	opts = {
-		-- Configuración básica
 		preset = "modern",
-		delay = 300, -- Tiempo de espera en ms (300 = 0.3 segundos)
-
-		-- Configuración de la ventana
-		win = {
-			border = "rounded",
-			padding = { 1, 2 },
-			title = true,
-			title_pos = "center",
-			zindex = 1000,
+		delay = 500,
+		icons = {
+			mappings = true,
+			keys = {},
 		},
+		spec = {
+			-- ------------------------------------------------
+			-- CODE (LSP)
+			-- ------------------------------------------------
+			{ "<leader>c", group = "code" },
+			{ "<leader>ca", desc = "Code action (LSP)" },
+			{ "<leader>cM", desc = "Añadir imports faltantes (TS)" },
+			{ "<leader>co", desc = "Organizar imports (TS)" },
+			{ "<leader>cr", desc = "Eliminar imports no usados (TS)" },
+			{ "<leader>cf", desc = "Fix all (TS)" },
+			{ "<leader>cF", desc = "Format (LSP)" },
+			{ "<leader>cd", desc = "Diagnóstico flotante" },
+			{ "<leader>cq", desc = "Quickfix list" },
 
-		-- Layout
-		layout = {
-			width = { min = 20, max = 50 },
-			spacing = 3,
-			align = "left",
-		},
+			-- Navegación LSP
+			{ "gd", desc = "Go to definition" },
+			{ "gD", desc = "Go to declaration" },
+			{ "gi", desc = "Go to implementation" },
+			{ "gr", desc = "Go to references" },
+			{ "gt", desc = "Go to type definition" },
+			{ "K", desc = "Hover documentation" },
+			{ "<C-k>", desc = "Signature help" },
 
-		-- Triggers automáticos
-		triggers = {
-			{ "<leader>", mode = { "n", "v" } },
-			{ "<C-w>", mode = "n" },
-			{ "g", mode = { "n", "v" } },
-			{ "z", mode = { "n", "v" } },
-			{ "[", mode = "n" },
-			{ "]", mode = "n" },
-		},
-	},
+			-- Diagnósticos
+			{ "[d", desc = "Previous diagnostic" },
+			{ "]d", desc = "Next diagnostic" },
 
-	config = function(_, opts)
-		local wk = require("which-key")
-		wk.setup(opts)
-
-		-- ============================================
-		-- GRUPOS DE COMANDOS (Organización visual)
-		-- ============================================
-		wk.add({
-			-- AI / CodeCompanion
-			{ "<leader>a", group = "AI" },
-			{ "<leader>ai", desc = "Chat IA" },
-			{ "<leader>at", desc = "Toggle Chat" },
-			{ "<leader>aa", desc = "Acciones IA" },
-			{ "<leader>ae", desc = "Explicar código" },
-			{ "<leader>ab", desc = "Buscar bugs" },
-			{ "<leader>ao", desc = "Optimizar" },
-			{ "<leader>ad", desc = "Documentar" },
-			{ "<leader>am", desc = "Cambiar modelo" },
-			{ "<leader>ax", desc = "Limpiar chat" },
-			{ "<leader>ac", desc = "Chat inline" },
-			{ "<leader>aA", desc = "Agregar a chat" },
-
-			-- Buffers
-			{ "<leader>b", group = "Buffers" },
-			{ "<leader>bd", desc = "Cerrar buffer" },
-
-			-- Code / LSP
-			{ "<leader>c", group = "Code" },
-			{ "<leader>ca", desc = "Code actions" },
-			{ "<leader>cR", desc = "Rename file" },
-			{ "<leader>cw", desc = "Limpiar whitespace" },
-
-			-- Debug
-			{ "<leader>d", group = "Debug" },
-			{ "<leader>db", desc = "Toggle breakpoint" },
-			{ "<leader>dc", desc = "Continue" },
-			{ "<leader>di", desc = "Step into" },
-			{ "<leader>do", desc = "Step over" },
-			{ "<leader>dO", desc = "Step out" },
-			{ "<leader>dt", desc = "Toggle UI" },
-			{ "<leader>dr", desc = "REPL" },
-			{ "<leader>dl", desc = "Run last" },
-
-			-- Files / Find
-			{ "<leader>f", group = "Find" },
+			-- ------------------------------------------------
+			-- FILE/FIND (Snacks)
+			-- ------------------------------------------------
+			{ "<leader>f", group = "file/find" },
 			{ "<leader>ff", desc = "Find files" },
 			{ "<leader>fg", desc = "Live grep" },
 			{ "<leader>fb", desc = "Buffers" },
-			{ "<leader>fh", desc = "Help" },
 			{ "<leader>fr", desc = "Recent files" },
-			{ "<leader>fn", desc = "Nuevo archivo" },
-			{ "<leader>fp", desc = "Copiar path" },
-			{ "<leader>fP", desc = "Copiar path relativo" },
+			{ "<leader>fh", desc = "Help tags" },
 
-			-- Git
-			{ "<leader>g", group = "Git" },
-			{ "<leader>gg", desc = "LazyGit" },
-			{ "<leader>gc", desc = "Commits" },
-			{ "<leader>gs", desc = "Status" },
-			{ "<leader>gb", desc = "Blame line" },
-			{ "<leader>gf", desc = "File history" },
-			{ "<leader>gl", desc = "Log" },
+			-- ------------------------------------------------
+			-- WINDOW / BUFFER
+			-- ------------------------------------------------
+			{ "<leader>w", group = "window" },
+			{ "<leader>b", group = "buffer" },
+			{ "<leader>bd", desc = "Delete buffer" },
 
-			-- Quickfix
-			{ "<leader>q", group = "Quickfix" },
-			{ "<leader>qo", desc = "Abrir quickfix" },
-			{ "<leader>qc", desc = "Cerrar quickfix" },
+			-- ------------------------------------------------
+			-- GIT (Snacks/Lazygit)
+			-- ------------------------------------------------
+			{ "<leader>g", group = "git" },
+			{ "<leader>gg", desc = "Lazygit" },
+			{ "<leader>gs", desc = "Git status" },
+			{ "<leader>gc", desc = "Git commits" },
+			{ "<leader>gb", desc = "Git blame line" },
+			{ "<leader>gf", desc = "File history (lazygit)" },
+			{ "<leader>gl", desc = "Git log (lazygit)" },
 
-			-- Rename (LSP)
-			{ "<leader>r", group = "Rename" },
-			{ "<leader>rn", desc = "Rename symbol" },
+			-- ------------------------------------------------
+			-- NOTIFICATIONS
+			-- ------------------------------------------------
+			{ "<leader>u", group = "ui" },
+			{ "<leader>un", desc = "Notification history" },
 
-			-- Search
-			{ "<leader>s", group = "Search" },
-			{ "<leader>sr", desc = "Reemplazar palabra" },
-			{ "<leader>sw", desc = "Buscar palabra" },
-			{ "<leader>sh", desc = "Split horizontal" },
-			{ "<leader>sv", desc = "Split vertical" },
-			{ "<leader>sx", desc = "Cerrar split" },
+			-- ------------------------------------------------
+			-- AI (CodeCompanion)
+			-- ------------------------------------------------
+			{ "<leader>a", group = "ai" },
+			{ "<leader>ai", desc = "AI Chat" },
+			{ "<leader>at", desc = "Toggle AI Chat" },
+			{ "<leader>aa", desc = "AI Actions" },
+			{ "<leader>aA", desc = "Añadir selección al chat" },
+			{ "<leader>am", desc = "Cambiar adaptador (AI)" },
 
-			-- Terminal
-			{ "<leader>t", group = "Terminal" },
-			{ "<leader>th", desc = "Terminal horizontal" },
-			{ "<leader>tv", desc = "Terminal vertical" },
-
-			-- UI Toggles
-			{ "<leader>u", group = "UI" },
-			{ "<leader>ur", desc = "Toggle números relativos" },
-			{ "<leader>uw", desc = "Toggle word wrap" },
-			{ "<leader>ud", desc = "Toggle diagnósticos" },
-			{ "<leader>us", desc = "Toggle spell check" },
-			{ "<leader>un", desc = "Notificaciones" },
-
-			-- Window management
-			{ "<leader>w", group = "Window" },
-			-- Los sub-comandos se muestran dinámicamente
-
-			-- Otros
-			{ "<leader>-", desc = "Oil (explorador)" },
-			{ "<leader>R", desc = "Recargar config" },
-		})
-	end,
+			-- Help
+			{ "<leader>?", desc = "Buffer Local Keymaps" },
+		},
+	},
+	keys = {
+		{
+			"<leader>?",
+			function()
+				require("which-key").show({ global = false })
+			end,
+			desc = "Buffer Local Keymaps (which-key)",
+		},
+	},
 }
 return {
   "NvChad/nvim-colorizer.lua",
@@ -1439,252 +1738,6 @@ return {
   },
   config = function(_, opts)
     require("colorizer").setup(nil, opts)
-  end,
-}
--- ============================================
--- CODECOMPANION - IA Local + Cloud
--- ============================================
--- Soporta:
--- - Ollama (local, gratis)
--- - HuggingFace (cloud, gratis)
--- - Perplexity (búsqueda web)
--- 
--- Modelos recomendados:
--- - qwen2.5-coder:7b (mejor para código)
--- - deepseek-r1:7b (razonamiento)
--- - llama3.2:3b (ligero)
-
-return {
-  "olimorris/codecompanion.nvim",
-  dependencies = {
-    "nvim-lua/plenary.nvim",
-    "nvim-treesitter/nvim-treesitter",
-    "hrsh7th/nvim-cmp",
-    { "stevearc/dressing.nvim", opts = {} },
-  },
-  
-  config = function()
-    require("codecompanion").setup({
-      -- Estrategia por defecto: Ollama local
-      strategies = {
-        chat = { adapter = "ollama" },
-        inline = { adapter = "ollama" },
-        agent = { adapter = "ollama" },
-      },
-      
-      adapters = {
-        -- OLLAMA LOCAL (GRATIS, PRIVADO)
-        ollama = function()
-          return require("codecompanion.adapters").extend("ollama", {
-            name = "ollama",
-            schema = {
-              model = {
-                default = "qwen2.5-coder:7b",
-                choices = {
-                  "qwen2.5-coder:7b",    -- Mejor para código
-                  "deepseek-r1:7b",      -- Razonamiento avanzado
-                  "llama3.2:3b",         -- Rápido y ligero
-                  "codellama:7b",        -- Alternativa para código
-                },
-              },
-              num_ctx = {
-                default = 32768, -- Contexto largo
-              },
-              temperature = {
-                default = 0.3, -- Más determinista para código
-              },
-            },
-          })
-        end,
-        
-        -- HUGGINGFACE (CLOUD GRATIS)
-        huggingface = function()
-          return require("codecompanion.adapters").extend("openai_compatible", {
-            name = "huggingface",
-            url = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct/v1/chat/completions",
-            env = {
-              api_key = "HUGGINGFACE_API_KEY",
-            },
-            headers = {
-              ["Content-Type"] = "application/json",
-            },
-            schema = {
-              model = {
-                default = "meta-llama/Llama-3.2-3B-Instruct",
-              },
-              temperature = {
-                default = 0.7,
-              },
-              max_tokens = {
-                default = 4096,
-              },
-            },
-          })
-        end,
-        
-        -- PERPLEXITY (Búsqueda Web - 7 días gratis)
-        perplexity = function()
-          return require("codecompanion.adapters").extend("openai_compatible", {
-            name = "perplexity",
-            url = "https://api.perplexity.ai/chat/completions",
-            env = {
-              api_key = "PERPLEXITY_API_KEY",
-            },
-            schema = {
-              model = {
-                default = "llama-3.1-sonar-small-128k-online",
-                choices = {
-                  "llama-3.1-sonar-small-128k-online",  -- Con búsqueda web
-                  "llama-3.1-sonar-large-128k-online",
-                },
-              },
-            },
-          })
-        end,
-      },
-      
-      -- Configuración de visualización
-      display = {
-        diff = {
-          provider = "mini_diff",
-        },
-        chat = {
-          window = {
-            layout = "vertical",
-            width = 0.45,
-            height = 0.9,
-            relative = "editor",
-            border = "rounded",
-          },
-          show_settings = true,
-        },
-      },
-      
-      -- Prompts del sistema
-      opts = {
-        log_level = "ERROR", -- Solo errores
-        send_code = true,
-        use_default_actions = true,
-        system_prompt = [[Eres un asistente experto en programación.
-SIEMPRE responde en español.
-Especialízate en JavaScript, TypeScript y desarrollo web.
-Sé claro, conciso y proporciona ejemplos prácticos.]],
-      },
-      
-      -- Biblioteca de prompts personalizados
-      prompt_library = {
-        ["Explicar código"] = {
-          strategy = "chat",
-          description = "Explica el código seleccionado",
-          prompts = {
-            {
-              role = "system",
-              content = "Explica código de forma clara para alguien aprendiendo programación.",
-            },
-            {
-              role = "user",
-              content = function(context)
-                return "Explica este código paso a paso:\n\n```" 
-                  .. context.filetype .. "\n" 
-                  .. context.selection .. "\n```"
-              end,
-            },
-          },
-        },
-        
-        ["Encontrar bugs"] = {
-          strategy = "chat",
-          description = "Revisa el código en busca de errores",
-          prompts = {
-            {
-              role = "system",
-              content = "Eres un experto en debugging. Identifica errores y sugiere correcciones.",
-            },
-            {
-              role = "user",
-              content = function(context)
-                return "Revisa este código en busca de bugs:\n\n```"
-                  .. context.filetype .. "\n"
-                  .. context.selection .. "\n```"
-              end,
-            },
-          },
-        },
-        
-        ["Optimizar"] = {
-          strategy = "inline",
-          description = "Optimiza el código seleccionado",
-          prompts = {
-            {
-              role = "system",
-              content = "Optimiza el código manteniendo la funcionalidad. Solo devuelve el código optimizado.",
-            },
-            {
-              role = "user",
-              content = function(context)
-                return "Optimiza:\n\n```" 
-                  .. context.filetype .. "\n" 
-                  .. context.selection .. "\n```"
-              end,
-            },
-          },
-        },
-      },
-    })
-    
-    -- ============================================
-    -- KEYMAPS
-    -- ============================================
-    local keymap = vim.keymap.set
-    local opts = { noremap = true, silent = true }
-    
-    -- Chat principal
-    keymap("n", "<leader>cc", "<cmd>CodeCompanionChat<cr>", opts)
-    keymap("v", "<leader>cc", "<cmd>CodeCompanionChat<cr>", opts)
-    keymap("n", "<leader>ct", "<cmd>CodeCompanionChat Toggle<cr>", opts)
-    
-    -- Acciones rápidas
-    keymap({ "n", "v" }, "<leader>ca", "<cmd>CodeCompanionActions<cr>", opts)
-    
-    -- Agregar código al chat
-    keymap("v", "<leader>cA", "<cmd>CodeCompanionChat Add<cr>", opts)
-    
-    -- Cambiar modelo (útil para cambiar entre local/cloud)
-    keymap("n", "<leader>cm", function()
-      vim.ui.select(
-        { "ollama", "huggingface", "perplexity" },
-        { prompt = "Selecciona adaptador:" },
-        function(choice)
-          if choice then
-            vim.notify("Cambiado a: " .. choice, vim.log.levels.INFO)
-            -- Actualizar estrategia
-            require("codecompanion").setup({
-              strategies = {
-                chat = { adapter = choice },
-                inline = { adapter = choice },
-              },
-            })
-          end
-        end
-      )
-    end, opts)
-    
-    -- ============================================
-    -- AUTOCOMMANDS
-    -- ============================================
-    vim.api.nvim_create_autocmd("FileType", {
-      pattern = "codecompanion",
-      callback = function(ev)
-        -- Mover ventana a la derecha
-        vim.defer_fn(function()
-          vim.cmd("wincmd L")
-        end, 50)
-        
-        -- Keymaps del buffer
-        vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = ev.buf, silent = true })
-        vim.keymap.set("i", "<C-s>", "<cmd>CodeCompanionChat Submit<cr>", { buffer = ev.buf, silent = true })
-      end,
-    })
   end,
 }
 -- ===================================================
