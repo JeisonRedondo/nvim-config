@@ -159,13 +159,14 @@ return {
 					-- Mantener el on_attach base de lspconfig (crea el comando LspEslintFixAll)
 					if base_eslint_on_attach then
 						base_eslint_on_attach(client, bufnr)
+
+						vim.api.nvim_create_autocmd("BufWritePre", {
+							buffer = bufnr,
+							command = "LspEslintFixAll",
+						})
 					end
 
 					-- Fix al guardar (usa el comando buffer-local creado por lspconfig)
-					vim.api.nvim_create_autocmd("BufWritePre", {
-						buffer = bufnr,
-						command = "LspEslintFixAll",
-					})
 				end,
 				settings = {
 					workingDirectories = { mode = "auto" },
@@ -259,8 +260,6 @@ return {
 					vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
 					vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
 
-					-- Acciones básicas (IMPORTANTÍSIMO: que <leader>ca sea LSP)
-					vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
 					vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
 
 					-- Formateo manual: lo movemos a <leader>cF para no romper <leader>f (files)
