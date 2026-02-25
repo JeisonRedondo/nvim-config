@@ -1,333 +1,215 @@
--- Configuración de CodeCompanion con Hugging Face (100% Gratis)
--- Usa la API de inferencia gratuita de Hugging Face
+-- ============================================
+-- CODECOMPANION - SOLUCIÓN DEFINITIVA
+-- ============================================
+-- Detecta el buffer por NOMBRE, no por filetype
+-- Porque el filetype es "lua", no "codecompanion"
 
 return {
-  "olimorris/codecompanion.nvim",
-  dependencies = {
-    "nvim-lua/plenary.nvim",
-    "nvim-treesitter/nvim-treesitter",
-    "hrsh7th/nvim-cmp",                    -- Opcional: para autocompletado
-    "nvim-telescope/telescope.nvim",       -- Opcional: para UI mejorada
-    { "stevearc/dressing.nvim", opts = {} }, -- Opcional: para mejores inputs
-    "ravitemer/codecompanion-history.nvim", -- Extensión para historial de chats
-  },
-  config = function()
-    require("codecompanion").setup({
-      strategies = {
-        chat = {
-          adapter = "huggingface",
-        },
-        inline = {
-          adapter = "huggingface",
-        },
-        agent = {
-          adapter = "huggingface",
-        },
-      },
-      adapters = {
-        http = {
-          huggingface = function()
-            return require("codecompanion.adapters").extend("openai_compatible", {
-              name = "huggingface",
-              url = "https://router.huggingface.co/v1/chat/completions",
-              env = {
-                api_key = "HUGGINGFACE_API_KEY",
-              },
-              headers = {
-                ["Content-Type"] = "application/json",
-              },
-              schema = {
-                model = {
-                  -- Modelos gratuitos disponibles:
-                  default = "meta-llama/Llama-3.2-3B-Instruct",
-                  choices = {
-                    "meta-llama/Llama-3.2-3B-Instruct", -- Gratis y rápido
-                    "mistralai/Mistral-7B-Instruct-v0.3", -- Gratis
-                    "microsoft/Phi-3.5-mini-instruct", -- Gratis
-                    "google/gemma-2-2b-it",     -- Gratis
-                  },
-                },
-                temperature = {
-                  default = 0.7,
-                },
-                max_tokens = {
-                  default = 4096,
-                },
-              },
-            })
-          end,
-          opts = {
-            timeout_ms = 60000, -- Timeout más largo para modelos gratuitos
-          },
-        },
-      },
-      display = {
-        diff = {
-          provider = "mini_diff",
-        },
-        chat = {
-          window = {
-            layout = "vertical",
-            width = 0.45,
-            height = 0.8,
-            relative = "editor",
-            opts = {
-              breakindent = true,
-              cursorcolumn = false,
-              cursorline = false,
-              foldcolumn = "0",
-              linebreak = true,
-              list = false,
-              signcolumn = "no",
-              spell = false,
-              wrap = true,
-            },
-          },
-          show_settings = true,
-          -- Deshabilitar keymaps por defecto que interfieren
-          keymaps = {
-            close = {
-              modes = {
-                n = "q", -- Cambiar de <C-c> a 'q' para cerrar
-                i = false, -- Deshabilitar <C-c> en insert mode
-              },
-            },
-            send = {
-              modes = {
-                n = "<CR>",
-                i = "<C-s>",
-              },
-            },
-          },
-        },
-        action_palette = {
-          provider = "telescope",
-        },
-      },
-      opts = {
-        log_level = "INFO",
-        send_code = true,
-        use_default_actions = true,
-        use_default_prompt_library = true,
-        -- Sistema de prompts global para que SIEMPRE responda en español
-        system_prompt = [[Eres un asistente de programación experto.
-IMPORTANTE: Debes responder SIEMPRE en español, sin importar el idioma de la pregunta.
-Sé claro, conciso y proporciona ejemplos de código cuando sea apropiado.
-Explica conceptos técnicos de manera comprensible.]],
-      },
-      -- Extensión de historial de chats
-      extensions = {
-        history = {
-          enabled = true,
-          opts = {
-            -- Tecla para abrir el historial desde el chat buffer
-            keymap = "gh",
-            -- Tecla para guardar manualmente el chat actual
-            save_chat_keymap = "sc",
-            -- Guardar todos los chats automáticamente
-            auto_save = true,
-            -- Días antes de borrar chats automáticamente (0 = nunca)
-            expiration_days = 0,
-            -- Interfaz de selección (telescope, fzf-lua, snacks, o default)
-            picker = "telescope",
-            -- Keymaps personalizados del picker
-            picker_keymaps = {
-              rename = { n = "r", i = "<M-r>" },
-              delete = { n = "d", i = "<M-d>" },
-              duplicate = { n = "<C-y>", i = "<C-y>" },
-            },
-          },
-        },
-      },
-      prompt_library = {
-        ["Explicar código"] = {
-          strategy = "chat",
-          description = "Explica el código seleccionado",
-          opts = {
-            index = 1,
-            is_default = true,
-            is_slash_cmd = false,
-            user_prompt = true,
-          },
-          prompts = {
-            {
-              role = "system",
-              content = "Eres un experto programador. Explica el código de manera clara y concisa en español.",
-            },
-            {
-              role = "user",
-              content = function(context)
-                return "Por favor explica este código:\n\n```"
-                    .. context.filetype
-                    .. "\n"
-                    .. context.selection
-                    .. "\n```"
-              end,
-            },
-          },
-        },
-        ["Optimizar código"] = {
-          strategy = "chat",
-          description = "Sugiere optimizaciones para el código",
-          opts = {
-            index = 2,
-          },
-          prompts = {
-            {
-              role = "system",
-              content = "Eres un experto en optimización de código. Sugiere mejoras de rendimiento y mejores prácticas.",
-            },
-            {
-              role = "user",
-              content = function(context)
-                return "Analiza y optimiza este código:\n\n```"
-                    .. context.filetype
-                    .. "\n"
-                    .. context.selection
-                    .. "\n```"
-              end,
-            },
-          },
-        },
-        ["Corregir bugs"] = {
-          strategy = "chat",
-          description = "Identifica y corrige posibles bugs",
-          opts = {
-            index = 3,
-          },
-          prompts = {
-            {
-              role = "system",
-              content = "Eres un experto en debugging. Identifica problemas potenciales y sugiere correcciones.",
-            },
-            {
-              role = "user",
-              content = function(context)
-                return "Revisa este código en busca de bugs:\n\n```"
-                    .. context.filetype
-                    .. "\n"
-                    .. context.selection
-                    .. "\n```"
-              end,
-            },
-          },
-        },
-        ["Generar tests"] = {
-          strategy = "chat",
-          description = "Genera tests unitarios para el código",
-          opts = {
-            index = 4,
-          },
-          prompts = {
-            {
-              role = "system",
-              content = "Eres un experto en testing. Genera tests unitarios completos y bien documentados.",
-            },
-            {
-              role = "user",
-              content = function(context)
-                return "Genera tests para este código:\n\n```"
-                    .. context.filetype
-                    .. "\n"
-                    .. context.selection
-                    .. "\n```"
-              end,
-            },
-          },
-        },
-      },
-    })
+	"olimorris/codecompanion.nvim",
+	dependencies = {
+		"nvim-lua/plenary.nvim",
+		"nvim-treesitter/nvim-treesitter",
+		"hrsh7th/nvim-cmp",
+		{ "stevearc/dressing.nvim", opts = {} },
+	},
 
-    -- Keymaps recomendados
-    local keymap = vim.keymap.set
-    local opts = { noremap = true, silent = true }
+	config = function()
+		require("codecompanion").setup({
+			strategies = {
+				chat = { adapter = "ollama" },
+				inline = { adapter = "ollama" },
+				agent = { adapter = "ollama" },
+			},
 
-    -- Chat (con opción de posición derecha)
-    keymap("n", "<leader>cc", function()
-      vim.cmd("CodeCompanionChat")
-      -- Mover la ventana a la derecha después de abrirse
-      vim.defer_fn(function()
-        vim.cmd("wincmd L")
-      end, 50)
-    end, opts)
+			adapters = {
+				ollama = function()
+					return require("codecompanion.adapters").extend("ollama", {
+						name = "ollama",
+						schema = {
+							model = {
+								default = "qwen2.5-coder:7b",
+								choices = {
+									"qwen2.5-coder:7b",
+									"deepseek-r1:7b",
+									"llama3.2:3b",
+									"codellama:7b",
+								},
+							},
+							num_ctx = { default = 32768 },
+							temperature = { default = 0.3 },
+						},
+					})
+				end,
 
-    keymap("v", "<leader>cc", function()
-      vim.cmd("CodeCompanionChat")
-      vim.defer_fn(function()
-        vim.cmd("wincmd L")
-      end, 50)
-    end, opts)
+				huggingface = function()
+					return require("codecompanion.adapters").extend("openai_compatible", {
+						name = "huggingface",
+						url = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct/v1/chat/completions",
+						env = {
+							api_key = "HUGGINGFACE_API_KEY",
+						},
+						headers = {
+							["Content-Type"] = "application/json",
+						},
+						schema = {
+							model = {
+								default = "meta-llama/Llama-3.2-3B-Instruct",
+							},
+							temperature = { default = 0.7 },
+							max_tokens = { default = 4096 },
+						},
+					})
+				end,
+			},
 
-    keymap("n", "<leader>ct", function()
-      vim.cmd("CodeCompanionChat Toggle")
-      vim.defer_fn(function()
-        vim.cmd("wincmd L")
-      end, 50)
-    end, opts)
+			display = {
+				diff = {
+					provider = "mini_diff",
+				},
+				chat = {
+					window = {
+						layout = "vertical",
+						width = 0.45,
+						height = 0.8,
+						relative = "editor",
+					},
+					show_settings = true,
+					keymaps = {
+						close = {
+							modes = {
+								n = "q",
+								i = false,
+							},
+						},
+						send = {
+							modes = {
+								n = "<CR>",
+								i = "<C-s>",
+							},
+						},
+					},
+				},
+			},
 
-    -- Acciones inline
-    keymap("n", "<leader>ce", "<cmd>CodeCompanionActions<cr>", opts)
-    keymap("v", "<leader>ce", "<cmd>CodeCompanionActions<cr>", opts)
+			opts = {
+				log_level = "ERROR",
+				send_code = true,
+				use_default_actions = true,
+				system_prompt = [[Eres un asistente experto en programación.
+SIEMPRE responde en español.
+Especialízate en JavaScript, TypeScript y desarrollo web.
+Sé claro, conciso y proporciona ejemplos prácticos.]],
+			},
 
-    -- Agregar código al chat
-    keymap("v", "<leader>cA", "<cmd>CodeCompanionChat Add<cr>", opts)
+			prompt_library = {
+				["Explicar código"] = {
+					strategy = "chat",
+					description = "Explica el código seleccionado",
+					prompts = {
+						{
+							role = "system",
+							content = "Explica código de forma clara para alguien aprendiendo programación.",
+						},
+						{
+							role = "user",
+							content = function(context)
+								return "Explica este código:\n\n```"
+									.. context.filetype
+									.. "\n"
+									.. context.selection
+									.. "\n```"
+							end,
+						},
+					},
+				},
+				["Encontrar bugs"] = {
+					strategy = "chat",
+					description = "Revisa el código en busca de errores",
+					prompts = {
+						{
+							role = "system",
+							content = "Eres un experto en debugging.",
+						},
+						{
+							role = "user",
+							content = function(context)
+								return "Revisa bugs:\n\n```" .. context.filetype .. "\n" .. context.selection .. "\n```"
+							end,
+						},
+					},
+				},
+			},
+		})
 
-    -- Comandos slash en el chat
-    keymap("n", "<leader>c/", "<cmd>CodeCompanion /cmd<cr>", opts)
+		-- ============================================
+		-- SOLUCIÓN: Detectar por NOMBRE de buffer
+		-- ============================================
+		-- Como el filetype es "lua", detectamos por nombre
 
-    -- Abrir historial de chats (alternativa global además de 'gh' dentro del chat)
-    keymap("n", "<leader>ch", function()
-      vim.cmd("CodeCompanionHistory")
-      -- Mover la ventana a la derecha después de abrirse
-      vim.defer_fn(function()
-        -- Buscar el buffer de codecompanion y moverlo
-        for _, win in ipairs(vim.api.nvim_list_wins()) do
-          local buf = vim.api.nvim_win_get_buf(win)
-          local ft = vim.api.nvim_get_option_value("filetype", { buf = buf })
-          if ft == "codecompanion" then
-            vim.api.nvim_set_current_win(win)
-            vim.cmd("wincmd L")
-            break
-          end
-        end
-      end, 100)
-    end, opts)
+		local function is_codecompanion_buffer(buf)
+			local bufname = vim.api.nvim_buf_get_name(buf)
+			-- Los buffers de CodeCompanion tienen "codecompanion" en el nombre
+			return bufname:match("codecompanion") ~= nil or bufname:match("CodeCompanion") ~= nil
+		end
 
-    -- FIX: Ctrl+C ahora funciona normalmente para salir de insert mode
-    -- Usar defer_fn para asegurar que se ejecute después de que CodeCompanion configure sus keymaps
-    vim.api.nvim_create_autocmd({ "FileType", "BufEnter" }, {
-      pattern = "codecompanion",
-      callback = function(ev)
-        -- Mover automáticamente a la derecha cuando se abra cualquier buffer de codecompanion
-        vim.defer_fn(function()
-          local current_win = vim.api.nvim_get_current_win()
-          local buf = vim.api.nvim_win_get_buf(current_win)
-          local ft = vim.api.nvim_get_option_value("filetype", { buf = buf })
+		local function setup_codecompanion_keymaps(buf)
+			-- Verificar que sea realmente un buffer de CodeCompanion
+			if not is_codecompanion_buffer(buf) then
+				return
+			end
 
-          if ft == "codecompanion" then
-            vim.cmd("wincmd L")
-          end
-        end, 50)
+			-- ENTER: Enviar mensaje
+			pcall(vim.keymap.del, "n", "<CR>", { buffer = buf })
+			vim.keymap.set("n", "<CR>", function()
+				pcall(vim.cmd, "CodeCompanionChat Submit")
+			end, {
+				buffer = buf,
+				noremap = true,
+				silent = true,
+				desc = "Enviar mensaje",
+			})
+		end
 
-        vim.defer_fn(function()
-          -- Forzar el remapeo de Ctrl+C
-          pcall(vim.keymap.del, "i", "<C-c>", { buffer = ev.buf })
-          pcall(vim.keymap.del, "n", "<C-c>", { buffer = ev.buf })
+		-- ============================================
+		-- AUTOCMD: Detectar CUALQUIER buffer nuevo
+		-- ============================================
+		vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
+			pattern = "*",
+			callback = function(ev)
+				local buf = ev.buf
 
-          -- Establecer el nuevo comportamiento
-          vim.keymap.set("i", "<C-c>", "<Esc>", { buffer = ev.buf, noremap = true, silent = true })
-          vim.keymap.set("n", "<C-c>", "<Nop>", { buffer = ev.buf, noremap = true, silent = true })
+				-- Verificar si es buffer de CodeCompanion
+				if is_codecompanion_buffer(buf) then
+					-- Mover a la derecha
+					vim.defer_fn(function()
+						vim.cmd("wincmd L")
+					end, 50)
 
-          -- Usar 'q' o <leader>q para cerrar el chat
-          vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = ev.buf, noremap = true, silent = true })
-          vim.keymap.set(
-            "n",
-            "<leader>q",
-            "<cmd>close<cr>",
-            { buffer = ev.buf, noremap = true, silent = true }
-          )
-        end, 100) -- Esperar 100ms para que CodeCompanion termine de configurar
-      end,
-    })
-  end,
+					-- Aplicar keymaps
+					vim.defer_fn(function()
+						setup_codecompanion_keymaps(buf)
+					end, 100)
+
+					-- Reaplicar keymaps (por si CodeCompanion los sobrescribe)
+					vim.defer_fn(function()
+						setup_codecompanion_keymaps(buf)
+					end, 250)
+				end
+			end,
+		})
+
+		-- ============================================
+		-- REFORZAR: Cuando entras a insert y sales
+		-- ============================================
+		vim.api.nvim_create_autocmd("InsertLeave", {
+			pattern = "*",
+			callback = function(ev)
+				if is_codecompanion_buffer(ev.buf) then
+					vim.schedule(function()
+						setup_codecompanion_keymaps(ev.buf)
+					end)
+				end
+			end,
+		})
+	end,
 }

@@ -20,16 +20,16 @@ vim.opt.smartindent = true
 -- B├ÜSQUEDA
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
-vim.opt.hlsearch = true     -- Resaltar b├║squedas
-vim.opt.incsearch = true    -- Resaltar incremental
+vim.opt.hlsearch = true -- Resaltar b├║squedas
+vim.opt.incsearch = true -- Resaltar incremental
 
 -- COMPORTAMIENTO
 vim.opt.mouse = "a"
-vim.opt.swapfile = false  -- Ya tienes directorio configurado
+vim.opt.swapfile = false -- Ya tienes directorio configurado
 vim.opt.backup = false
 vim.opt.writebackup = false
-vim.opt.autowrite = true  -- Ya lo ten├¡as
-vim.opt.undofile = true   -- Historial de deshacer persistente
+vim.opt.autowrite = true -- Ya lo ten├¡as
+vim.opt.undofile = true -- Historial de deshacer persistente
 vim.opt.undodir = vim.fn.expand("~/.local/share/nvim/undo//")
 
 -- SPLITS
@@ -53,15 +53,16 @@ vim.opt.directory = vim.fn.expand("~/.local/share/nvim/swap//")
 -- ============================================
 -- (Tu configuraci├│n actual est├í perfecta, d├®jala igual)
 vim.g.clipboard = {
-  name = "WslClipboard",
-  copy = {
-    ["+"] = "/mnt/c/Windows/System32/clip.exe",
-    ["*"] = "/mnt/c/Windows/System32/clip.exe",
-  },
-  paste = {
-    ["+"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -c Get-Clipboard",
-    ["*"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -c Get-Clipboard",
-  },
-  cache_enabled = 0,
+	name = "WslClipboard",
+	copy = {
+		["+"] = "/mnt/c/Windows/System32/clip.exe",
+		["*"] = "/mnt/c/Windows/System32/clip.exe",
+	},
+	paste = {
+		["+"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -c Get-Clipboard",
+		["*"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -c Get-Clipboard",
+	},
+	cache_enabled = 0,
 }
 
+vim.opt.timeoutlen = 1000
