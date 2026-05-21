@@ -31,14 +31,15 @@ vim.opt.writebackup = false
 vim.opt.autowrite = true -- Ya lo ten├¡as
 vim.opt.undofile = true -- Historial de deshacer persistente
 vim.opt.undodir = vim.fn.expand("~/.local/share/nvim/undo//")
+vim.opt.autoread = true
 
 -- SPLITS
 vim.opt.splitright = true
 vim.opt.splitbelow = true
 
 -- PERFORMANCE
-vim.opt.updatetime = 250
-vim.opt.timeoutlen = 300
+vim.opt.updatetime = 500
+vim.opt.timeoutlen = 500
 
 -- VISUAL
 vim.opt.scrolloff = 10
@@ -65,4 +66,8 @@ vim.g.clipboard = {
 	cache_enabled = 0,
 }
 
-vim.opt.timeoutlen = 1000
+-- Fuerza la revisión al cambiar de buffer o enfocar la ventana
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHoldI" }, {
+	pattern = "*",
+	command = "checktime",
+})

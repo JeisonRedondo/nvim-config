@@ -153,7 +153,7 @@ return {
 
 		-- Terminal flotante
 		{
-			"<C-_>",
+			"<leader>t",
 			function()
 				Snacks.terminal()
 			end,

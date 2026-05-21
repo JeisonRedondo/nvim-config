@@ -143,8 +143,8 @@ vim.keymap.set("n", "<A-k>", function()
 	fn.resize_window("down", 2)
 end, opts)
 
--- Mapeos en modo normal y visual
-vim.keymap.set({ "n", "v" }, "<C-s>", function()
+-- Mapeos  para  guardar  en modo normal y visual
+vim.keymap.set({ "n", "v" }, "<leader>9", function()
 	fn.save_file()
 end, { noremap = true, silent = true })
 

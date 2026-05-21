@@ -6,47 +6,6 @@
 
 return {
 	{
-		"williamboman/mason.nvim",
-		lazy = false,
-		config = function()
-			require("mason").setup({
-				ui = {
-					border = "rounded",
-					icons = {
-						package_installed = "✓",
-						package_pending = "➜",
-						package_uninstalled = "✗",
-					},
-				},
-			})
-		end,
-	},
-
-	{
-		"williamboman/mason-lspconfig.nvim",
-		lazy = false,
-		opts = {
-			ensure_installed = {
-				-- JavaScript/TypeScript
-				"ts_ls", -- TypeScript
-				"eslint", -- Linter
-
-				-- Web
-				"html", -- HTML
-				"cssls", -- CSS
-				"tailwindcss", -- TailwindCSS (opcional)
-
-				-- Lua (para config de nvim)
-				"lua_ls",
-
-				-- JSON
-				"jsonls",
-			},
-			automatic_installation = true,
-		},
-	},
-
-	{
 		"neovim/nvim-lspconfig",
 		lazy = false,
 		dependencies = {
@@ -200,8 +159,6 @@ return {
 
 					-- Diagnósticos
 					vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, opts)
-					vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, opts)
-					vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
 					vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, opts)
 				end,
 			})
