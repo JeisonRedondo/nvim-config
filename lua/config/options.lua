@@ -45,6 +45,7 @@ vim.opt.timeoutlen = 500
 vim.opt.scrolloff = 10
 vim.opt.wrap = true
 vim.opt.termguicolors = true
+vim.lsp.inlay_hint.enable(true)
 
 -- DIRECTORIO DE SWAP (ya lo tienes)
 vim.opt.directory = vim.fn.expand("~/.local/share/nvim/swap//")
