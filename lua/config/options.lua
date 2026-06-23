@@ -20,7 +20,7 @@ vim.opt.smartindent = true
 -- B├ÜSQUEDA
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
-vim.opt.hlsearch = true -- Resaltar b├║squedas
+vim.opt.hlsearch = true  -- Resaltar b├║squedas
 vim.opt.incsearch = true -- Resaltar incremental
 
 -- COMPORTAMIENTO
@@ -29,7 +29,7 @@ vim.opt.swapfile = false -- Ya tienes directorio configurado
 vim.opt.backup = false
 vim.opt.writebackup = false
 vim.opt.autowrite = true -- Ya lo ten├¡as
-vim.opt.undofile = true -- Historial de deshacer persistente
+vim.opt.undofile = true  -- Historial de deshacer persistente
 vim.opt.undodir = vim.fn.expand("~/.local/share/nvim/undo//")
 vim.opt.autoread = true
 
@@ -54,21 +54,40 @@ vim.opt.directory = vim.fn.expand("~/.local/share/nvim/swap//")
 -- CLIPBOARD WSL
 -- ============================================
 -- (Tu configuraci├│n actual est├í perfecta, d├®jala igual)
-vim.g.clipboard = {
-	name = "WslClipboard",
-	copy = {
-		["+"] = "/mnt/c/Windows/System32/clip.exe",
-		["*"] = "/mnt/c/Windows/System32/clip.exe",
-	},
-	paste = {
-		["+"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -c Get-Clipboard",
-		["*"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -c Get-Clipboard",
-	},
-	cache_enabled = 0,
-}
 
+if vim.fn.has("wsl") == 1 then
+  -- WSL: usa las herramientas de Windows
+  vim.g.clipboard = {
+    name = "WslClipboard",
+    copy = {
+      ["+"] = "/mnt/c/Windows/System32/clip.exe",
+      ["*"] = "/mnt/c/Windows/System32/clip.exe",
+    },
+    paste = {
+      ["+"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -c Get-Clipboard",
+      ["*"] = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -c Get-Clipboard",
+    },
+    cache_enabled = 0,
+  }
+elseif vim.fn.has("unix") == 1 then
+  -- Linux nativo: usa xclip o wl-clipboard según el entorno
+  local in_wayland = os.getenv("WAYLAND_DISPLAY") ~= nil
+
+  vim.g.clipboard = {
+    name = "LinuxClipboard",
+    copy = {
+      ["+"] = in_wayland and "wl-copy" or "xclip -selection clipboard",
+      ["*"] = in_wayland and "wl-copy --primary" or "xclip -selection primary",
+    },
+    paste = {
+      ["+"] = in_wayland and "wl-paste" or "xclip -selection clipboard -o",
+      ["*"] = in_wayland and "wl-paste --primary" or "xclip -selection primary -o",
+    },
+    cache_enabled = 1,
+  }
+end
 -- Fuerza la revisión al cambiar de buffer o enfocar la ventana
 vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHoldI" }, {
-	pattern = "*",
-	command = "checktime",
+  pattern = "*",
+  command = "checktime",
 })
