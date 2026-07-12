@@ -1,6 +1,6 @@
 return {
   "nvim-lualine/lualine.nvim",
-  dependencies = { "nvim-tree/nvim-web-devicons" },
+  dependencies = { "nvim-tree/nvim-web-devicons", "catppuccin/nvim"  },
   config = function()
     -- ============================================
     -- MODO: Solo Primera Letra
@@ -55,8 +55,7 @@ return {
     -- ============================================
     require("lualine").setup({
       options = {
-        theme = "catppuccin",
-        component_separators = { left = "", right = "" },
+        theme = "catppuccin-mocha",
         section_separators = { left = "", right = "" },
         globalstatus = false,
         disabled_filetypes = {
